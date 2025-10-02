@@ -1,20 +1,26 @@
 # ADR008 – Observabilité et monitoring
 **Date** : 2025-09-26  
-**Statut** : Proposé  
+**Statut** : Accepté (mis à jour)
 
 ## Contexte
 Un cluster de production nécessite supervision (métriques, logs, dashboards).  
-Options :  
-- Prometheus + Grafana + Loki.  
-- Solutions managées externes (Datadog, NewRelic).  
+Mais les besoins diffèrent fortement entre un environnement de test (1 nœud, ressources limitées) et une production stable.
+
+Options :
+- **Phase tests** : métriques et logs basiques.  
+- **Phase prod** : stack complète open-source (Prometheus, Grafana, Loki).  
+- **Solutions externes** (Datadog, NewRelic).
 
 ## Décision
-Nous adoptons la stack **Prometheus Operator + Loki + Grafana** déployée via Terraform (provider `helm`).  
+- En **phase tests** : nous déployons seulement les composants minimaux :  
+  - `metrics-server` pour usage `kubectl top`,  
+  - `kube-state-metrics` pour état du cluster,  
+  - logs locaux via container runtime.  
+
+- En **phase prod** : nous déploierons la stack complète **Prometheus Operator + Grafana + Loki**, avec dashboards préconfigurés et alertes.
 
 ## Conséquences
-- ✅ Stack open-source cohérente et éprouvée.  
-- ✅ Dashboards préconfigurés pour Kubernetes et Longhorn.  
-- ❌ Consommation de ressources (RAM/CPU).  
-- ❌ Maintenance des mises à jour charts/alertes.  
-
----
+- ✅ Phase tests : faible consommation de ressources, simplicité.  
+- ✅ Phase prod : observabilité complète, alertes et dashboards robustes.  
+- ❌ Besoin de migration/ajout de composants lors du passage en prod.  
+- ❌ Maintenance des mises à jour charts/alertes en prod.
