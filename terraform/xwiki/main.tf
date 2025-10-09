@@ -2,38 +2,107 @@ terraform {
   required_providers {
     helm = {
       source  = "hashicorp/helm"
-      version = "2.12.1"
+      version = "~> 2.12"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "2.29.0"
+      version = "~> 2.29"
     }
-  }
-}
-
-provider "helm" {
-  kubernetes {
-    config_path = "~/.kube/config"
   }
 }
 
 provider "kubernetes" {
-  config_path = "~/.kube/config"
+  config_path = pathexpand("~/.kube/config")
 }
 
+provider "helm" {
+  kubernetes {
+    config_path = pathexpand("~/.kube/config")
+  }
+}
+
+# ─────────────────────────────────────────────
+# XWIKI — Déploiement local (Helm chart embarqué)
+# ─────────────────────────────────────────────
+
+# Namespace explicite
+resource "kubernetes_namespace" "xwiki" {
+  metadata {
+    name = "xwiki"
+  }
+}
+
+# Déploiement XWiki
+resource "helm_release" "xwiki" {
+  name       = "xwiki"
+  namespace  = kubernetes_namespace.xwiki.metadata[0].name
+  chart      = "${path.module}/xwiki-helm/xwiki"
+  values     = [file("${path.module}/xwiki-helm/xwiki/values.yaml")]
+
+  create_namespace = false
+
+  # Optionnel : tag explicite pour suivi
+  set {
+    name  = "image.tag"
+    value = "lts-mysql-tomcat"
+  }
+
+  # Exemple : forcer ingress ou storageClass sans toucher au YAML
+  set {
+    name  = "ingress.enabled"
+    value = "false"
+  }
+  set {
+    name  = "persistence.storageClass"
+    value = "longhorn"
+  }
+
+  depends_on = [
+    kubernetes_namespace.xwiki
+  ]
+}
+
+# ─────────────────────────────────────────────
+# Sorties Terraform (infos utiles après apply)
+# ─────────────────────────────────────────────
+output "xwiki_namespace" {
+  description = "Namespace de déploiement"
+  value       = helm_release.xwiki.namespace
+}
+
+output "xwiki_service" {
+  description = "Service interne XWiki"
+  value = "kubectl get svc -n xwiki -o wide"
+
+}
+resource "kubernetes_namespace" "cert_manager" {
+  metadata {
+    name = "cert-manager"
+  }
+}
+
+# ─────────────────────────────────────────────────────────────
+# CERT-MANAGER : Chart officiel Jetstack
+# ─────────────────────────────────────────────────────────────
+
 resource "helm_release" "cert_manager" {
+  depends_on = [kubernetes_namespace.cert_manager]
   name       = "cert-manager"
-  namespace  = "cert-manager"
+  namespace  = kubernetes_namespace.cert_manager.metadata[0].name
   chart      = "cert-manager"
   repository = "https://charts.jetstack.io"
   version    = "v1.14.5"
-  create_namespace = true
+  create_namespace = false
 
   set {
     name  = "installCRDs"
     value = "true"
   }
 }
+
+# ─────────────────────────────────────────────────────────────
+# SECRET CLOUDFLARE pour DNS-01
+# ─────────────────────────────────────────────────────────────
 
 resource "kubernetes_secret" "cloudflare_api_token" {
   metadata {
@@ -48,8 +117,16 @@ resource "kubernetes_secret" "cloudflare_api_token" {
   type = "Opaque"
 }
 
+# ─────────────────────────────────────────────────────────────
+# ClusterIssuer DNS-01
+# ─────────────────────────────────────────────────────────────
+
 resource "kubernetes_manifest" "cluster_issuer" {
-  depends_on = [helm_release.cert_manager]
+  depends_on = [
+    helm_release.cert_manager,
+    kubernetes_secret.cloudflare_api_token
+  ]
+
   manifest = {
     apiVersion = "cert-manager.io/v1"
     kind       = "ClusterIssuer"
@@ -63,7 +140,7 @@ resource "kubernetes_manifest" "cluster_issuer" {
         privateKeySecretRef = {
           name = "letsencrypt-dns"
         }
-        solvers = [{
+        solvers = [ {
           dns01 = {
             cloudflare = {
               email = var.cloudflare_email
@@ -73,77 +150,65 @@ resource "kubernetes_manifest" "cluster_issuer" {
               }
             }
           }
-        }]
+        } ]
       }
     }
   }
 }
+# ─────────────────────────────────────────────────────────────
+# Ingress XWiki + certificat Let's Encrypt via cert-manager
+# ─────────────────────────────────────────────────────────────
 
-resource "helm_release" "xwiki" {
-  name             = "xwiki"
-  namespace        = "xwiki"
-  chart            = "${path.module}/charts/xwiki-1.6.3.tgz"
-  create_namespace = true
-  # Ingress / TLS
-  set {
-    name  = "ingress.enabled"
-    value = "true"
-  }
-  set {
-    name  = "ingress.hosts[0].host"
-    value = var.xwiki_domain
-  }
-  # Assurer qu’il y a un chemin défini
-  set {
-    name  = "ingress.hosts[0].paths[0].path"
-    value = "/"
-  }
-  set {
-    name  = "ingress.hosts[0].pathTypes[0]"
-    value = "Prefix"
-  }
-  set {
-    name  = "ingress.annotations.cert-manager\\.io/cluster-issuer"
-    value = "letsencrypt-dns"
-  }
-  set {
-    name  = "ingress.tls[0].hosts[0]"
-    value = var.xwiki_domain
-  }
-  set {
-    name  = "ingress.tls[0].secretName"
-    value = "xwiki-tls"
-  }
+# 1️⃣ — Ingress XWiki
+resource "kubernetes_manifest" "xwiki_ingress" {
+  depends_on = [
+    helm_release.xwiki,
+    kubernetes_manifest.cluster_issuer  # ton ClusterIssuer "letsencrypt-dns"
+  ]
 
-  # Override MySQL embarqué (à ajuster si nécessaire)
-  set {
-    name  = "mysql.enabled"
-    value = "true"
-  }
-  set {
-    name  = "mysql.auth.rootPassword"
-    value = "RootPwd123"
-  }
-  set {
-    name  = "mysql.auth.password"
-    value = "XwikiUserPwd"
-  }
-  set {
-    name  = "mysql.auth.database"
-    value = "xwiki"
-  }
-  set {
-    name  = "mysql.image.repository"
-    value = "docker.io/bitnamilegacy/mysql"
-  }
-  set {
-    name  = "mysql.image.tag"
-    value = "8.0.34-debian-11-r0"
-  }
-
-  # Si le chart requiert une option "allowInsecureImages"
-  set {
-    name  = "global.security.allowInsecureImages"
-    value = "true"
+  manifest = {
+    apiVersion = "networking.k8s.io/v1"
+    kind       = "Ingress"
+    metadata = {
+      name      = "xwiki"
+      namespace = "xwiki"
+      annotations = {
+        "kubernetes.io/ingress.class"                = "nginx"
+        "cert-manager.io/cluster-issuer"             = "letsencrypt-dns"
+        "nginx.ingress.kubernetes.io/ssl-redirect"   = "true"
+        "nginx.ingress.kubernetes.io/proxy-body-size" = "64m"
+      }
+    }
+    spec = {
+      ingressClassName = "nginx"
+      tls = [
+        {
+          hosts      = ["xwiki.nudger.logo-solutions.fr"]
+          secretName = "xwiki-tls"
+        }
+      ]
+      rules = [
+        {
+          host = "xwiki.nudger.logo-solutions.fr"
+          http = {
+            paths = [
+              {
+                path     = "/"
+                pathType = "Prefix"
+                backend  = {
+                  service = {
+                    name = "xwiki"
+                    port = {
+                      number = 80
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
   }
 }
+
