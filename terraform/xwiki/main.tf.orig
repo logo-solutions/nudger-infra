@@ -1,0 +1,193 @@
+terraform {
+  required_providers {
+    helm = {
+      source  = "hashicorp/helm"
+      version = "2.12.1"
+    }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "2.29.0"
+    }
+  }
+}
+
+provider "helm" {
+  kubernetes {
+    config_path = "~/.kube/config"
+  }
+}
+
+provider "kubernetes" {
+  config_path = "~/.kube/config"
+}
+
+# ─────────────────────────────────────────────────────────────
+# CERT-MANAGER : Chart officiel Jetstack
+# ─────────────────────────────────────────────────────────────
+
+resource "helm_release" "cert_manager" {
+  name             = "cert-manager"
+  namespace        = "cert-manager"
+  chart            = "cert-manager"
+  repository       = "https://charts.jetstack.io"
+  version          = "v1.14.5"
+  create_namespace = true
+
+  set {
+    name  = "installCRDs"
+    value = "true"
+  }
+}
+
+# ─────────────────────────────────────────────────────────────
+# SECRET CLOUDFLARE pour DNS-01
+# ─────────────────────────────────────────────────────────────
+
+resource "kubernetes_secret" "cloudflare_api_token" {
+  metadata {
+    name      = "cloudflare-api-token-secret"
+    namespace = "cert-manager"
+  }
+
+  data = {
+    "api-token" = base64encode(var.cloudflare_api_token)
+  }
+
+  type = "Opaque"
+}
+
+# ─────────────────────────────────────────────────────────────
+# ClusterIssuer DNS-01
+# ─────────────────────────────────────────────────────────────
+
+resource "kubernetes_manifest" "cluster_issuer" {
+  depends_on = [helm_release.cert_manager]
+
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "ClusterIssuer"
+    metadata = {
+      name = "letsencrypt-dns"
+    }
+    spec = {
+      acme = {
+        email  = var.cloudflare_email
+        server = "https://acme-v02.api.letsencrypt.org/directory"
+        privateKeySecretRef = {
+          name = "letsencrypt-dns"
+        }
+        solvers = [{
+          dns01 = {
+            cloudflare = {
+              email = var.cloudflare_email
+              apiTokenSecretRef = {
+                name = "cloudflare-api-token-secret"
+                key  = "api-token"
+              }
+            }
+          }
+        }]
+      }
+    }
+  }
+}
+
+# ─────────────────────────────────────────────────────────────
+# DEPLOIEMENT XWIKI + BASE INTERNE
+# ─────────────────────────────────────────────────────────────
+
+resource "helm_release" "xwiki" {
+  name             = "xwiki"
+  namespace        = "xwiki"
+  chart            = "${path.module}/xwiki-helm/xwiki"
+  create_namespace = true
+
+  # Sécurité (images legacy)
+  set {
+    name  = "global.security.allowInsecureImages"
+    value = "true"
+  }
+
+  # Ingress + Cert-manager DNS-01
+  set {
+    name  = "installCRDs"
+    value = "true"
+  }
+  set {
+    name  = "ingress.enabled"
+    value = "true"
+  }
+  set {
+    name  = "ingress.hosts[0].host"
+    value = var.xwiki_domain
+  }
+  set {
+    name  = "ingress.hosts[0].paths[0].path"
+    value = "/"
+  }
+  set {
+    name  = "ingress.hosts[0].paths[0].pathType"
+    value = "Prefix"
+  }
+  set {
+    name  = "ingress.tls[0].hosts[0]"
+    value = var.xwiki_domain
+  }
+  set {
+    name  = "ingress.tls[0].secretName"
+    value = "xwiki-tls"
+  }
+  set {
+    name  = "ingress.annotations.cert-manager\\.io/cluster-issuer"
+    value = "letsencrypt-dns"
+  }
+
+  # DB interne : activer mysql (bitnamilegacy/mysql)
+  set {
+    name  = "mysql.enabled"
+    value = "true"
+  }
+
+  # Assure que mariadb n'est pas activé (ils sont exclusifs)
+  set {
+    name  = "mariadb.enabled"
+    value = "false"
+  }
+
+  # Variables d’environnement attendues par l’image mysql
+  set {
+    name  = "mysql.primary.extraEnvVars[0].name"
+    value = "MYSQL_ROOT_PASSWORD"
+  }
+  set {
+    name  = "mysql.primary.extraEnvVars[0].value"
+    value = "RootPwd123"
+  }
+
+  set {
+    name  = "mysql.primary.extraEnvVars[1].name"
+    value = "MYSQL_USER"
+  }
+  set {
+    name  = "mysql.primary.extraEnvVars[1].value"
+    value = "xwiki"
+  }
+
+  set {
+    name  = "mysql.primary.extraEnvVars[2].name"
+    value = "MYSQL_PASSWORD"
+  }
+  set {
+    name  = "mysql.primary.extraEnvVars[2].value"
+    value = "XwikiUserPwd"
+  }
+
+  set {
+    name  = "mysql.primary.extraEnvVars[3].name"
+    value = "MYSQL_DATABASE"
+  }
+  set {
+    name  = "mysql.primary.extraEnvVars[3].value"
+    value = "xwiki"
+  }
+}
