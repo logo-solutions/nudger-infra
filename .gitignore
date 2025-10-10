@@ -1,3 +1,5 @@
 pat.md
 .DS_Store
 Docs/.DS_Store
+terraform/xwiki/.terraform/providers/registry.terraform.io/hashicorp/helm/2.12.1/linux_amd64/terraform-provider-helm_v2.12.1_x5
+terraform/xwiki/.terraform/providers/registry.terraform.io/hashicorp/kubernetes/2.29.0/linux_amd64/terraform-provider-kubernetes_v2.29.0_x5
