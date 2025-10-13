@@ -1,0 +1,346 @@
+cluster:
+  enabled: false
+  replicas: 1
+  jgroups:
+    port: 7800
+    kube_ping:
+      version: "2.0.1.Final"
+      url: "https://nexus.xwiki.org/nexus/service/local/repositories/central/content/org/jgroups/kubernetes/jgroups-kubernetes/${KUBEPING_VERSION}/jgroups-kubernetes-${KUBEPING_VERSION}.jar"
+
+commonAnnotations: {}
+
+image:
+  name: xwiki
+  pullPolicy: IfNotPresent
+  tag: lts-mysql-tomcat
+service:
+  annotations: {}
+  portName: node
+  name: http
+  type: ClusterIP
+  externalPort: 80
+  internalPort: 8080
+  externalIPs: []
+  sessionAffinity: ClientIP
+serviceAccount:
+  annotations: {}
+resources: {}
+
+javaOpts: []
+
+javaOptsSecrets:
+
+extraEnvVars: []
+
+extraVolumes: []
+
+extraVolumeMounts: []
+
+workloadStateful: true
+
+securityContext:
+  enabled: false
+  fsGroup: 101
+
+containerSecurityContext:
+  enabled: false
+  runAsUser: 100
+  runAsNonRoot: true
+  seccompProfile:
+    type: "RuntimeDefault"
+
+volumePermissions:
+  containerSecurityContext:
+    enabled: true
+    runAsUser: 0
+    seccompProfile:
+      type: "RuntimeDefault"
+  enabled: false
+global:
+  security:
+    allowInsecureImages: true
+mysql:
+  
+  image:
+    registry: public.ecr.aws
+    repository: bitnami/mysql
+    tag: 8.4.5-debian-12-r0
+    pullPolicy: IfNotPresent
+
+  enabled: true
+  auth:
+    rootPassword: "xwiki"
+    username: "xwiki"
+    password: "xwiki"
+    database: "xwiki"
+  initdbScripts:
+    00-init.sql: |
+      grant all privileges on *.* to xwiki@'%'
+  primary:
+    configuration: |-
+      [mysqld]
+      authentication_policy='{{- .Values.auth.authenticationPolicy | default "* ,," }}'
+      skip-name-resolve
+      explicit_defaults_for_timestamp
+      basedir=/opt/bitnami/mysql
+      plugin_dir=/opt/bitnami/mysql/lib/plugin
+      port={{ .Values.primary.containerPorts.mysql }}
+      mysqlx={{ ternary 1 0 .Values.primary.enableMySQLX }}
+      mysqlx_port={{ .Values.primary.containerPorts.mysqlx }}
+      socket=/opt/bitnami/mysql/tmp/mysql.sock
+      datadir=/bitnami/mysql/data
+      tmpdir=/opt/bitnami/mysql/tmp
+      max_allowed_packet=16M
+      bind-address=*
+      pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
+      log-error=/opt/bitnami/mysql/logs/mysqld.log
+      character-set-server=utf8mb4
+      collation-server=utf8mb4_bin
+      mysql_native_password=ON
+      slow_query_log=0
+      long_query_time=10.0
+      {{- if .Values.tls.enabled }}
+      ssl_cert=/opt/bitnami/mysql/certs/{{ .Values.tls.certFilename }}
+      ssl_key=/opt/bitnami/mysql/certs/{{ .Values.tls.certKeyFilename }}
+      {{- if (include "mysql.tlsCACert" .) }}
+      ssl_ca={{ include "mysql.tlsCACert" . }}
+      {{- end }}
+      {{- end }}
+
+      [client]
+      port={{ .Values.primary.containerPorts.mysql }}
+      socket=/opt/bitnami/mysql/tmp/mysql.sock
+      default-character-set=utf8mb4
+      plugin_dir=/opt/bitnami/mysql/lib/plugin
+
+      [manager]
+      port={{ .Values.primary.containerPorts.mysql }}
+      socket=/opt/bitnami/mysql/tmp/mysql.sock
+      pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
+externalDB:
+  enabled: false
+  customKeyRef: {}
+
+mariadb:
+  enabled: false
+postgresql:
+  enabled: false
+solr:
+  enabled: false
+  replicaCount: 1
+  image: 
+    registry: ""
+    repository: solr
+    tag: 8.11.4-slim
+    digest: ""
+    pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  extraEnvVars: []
+  resources: {}
+  downloadCores:
+    enabled: true
+  containerSecurityContext:
+    enabled: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - ALL
+    privileged: false
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  service:
+    annotations: {}
+    portName: solr-node
+    name: http
+    type: ClusterIP
+    externalPort: 8983
+    internalPort: 8983
+    sessionAffinity: ClientIP
+  persistence:
+    enabled: false
+    existingClaim: ""
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+    size: "500Mi"
+    annotations: {}
+    labels: {}
+    selector: {}
+    dataSource: {}
+  podAnnotations: {}
+  nodeSelector: {}
+  affinity: {}
+  tolerations: {}
+  probes:
+    customLiveness: {}
+    customReadiness: {}
+    customStartup: {}
+    liveness:
+      enabled: true
+      initialDelaySeconds: 40
+      periodSeconds: 10
+      timeoutSeconds: 15
+      failureThreshold: 6
+      successThreshold: 1
+    readiness:
+      enabled: true
+      initialDelaySeconds: 60
+      periodSeconds: 10
+      timeoutSeconds: 15
+      failureThreshold: 6
+      successThreshold: 1
+    startup:
+      enabled: true
+      initialDelaySeconds: 40
+      periodSeconds: 10
+      timeoutSeconds: 15
+      failureThreshold: 15
+      successThreshold: 1
+
+ingress:
+  enabled: false
+  className: nginx
+  hosts:
+    - host: wiki.devops.nudger.fr
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - hosts:
+        - wiki.devops.nudger.fr
+      secretName: xwiki-tls
+istio:
+  enabled: false
+  gateway:
+    enabled: false
+  tls:
+    certificate:
+      enabled: false
+
+persistence:
+  enabled: false
+  existingClaim: ""
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+  size: "2Gi"
+  annotations: {}
+  labels: {}
+  selector: {}
+  dataSource: {}
+  customVolume: {}
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+imagePullSecrets: []
+
+hostAliases: []
+
+customConfigs:
+
+customConfigsSecrets:
+
+properties:
+
+propertiesSecret:
+  name: ""
+  key: ""
+
+initContainers:
+  database:
+    enabled: false
+    containerSecurityContext:
+      enabled: false
+      runAsUser: 0
+      seccompProfile:
+        type: "RuntimeDefault"
+  solr:
+    enabled: false
+    image: ""
+    containerSecurityContext:
+      enabled: false
+      runAsUser: 0
+      seccompProfile:
+        type: "RuntimeDefault"
+
+glowroot:
+  enabled: false
+  version: 0.14.0
+  url: https://github.com/glowroot/glowroot/releases/download/v${GLOWROOT_VERSION}/glowroot-${GLOWROOT_VERSION}-dist.zip
+  properties:
+    data.dir: /usr/local/xwiki/data/glowroot/data
+    log.dir: /usr/local/xwiki/data/glowroot/log
+    tmp.dir: /usr/local/xwiki/data/glowroot/tmp
+
+logback:
+  enabled: false
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  metrics: {}
+  status: {}
+
+probes:
+  startup:
+    enabled: true
+    httpGet:
+      enabled: false
+      path: /
+    initialDelaySeconds: 120
+    timeoutSeconds: 60
+    periodSeconds: 30
+    failureThreshold: 5
+    successThreshold: 1
+  liveness:
+    enabled: true
+    httpGet:
+      enabled: true
+      path: /rest
+    initialDelaySeconds: 30
+    timeoutSeconds: 3
+    periodSeconds: 30
+    failureThreshold: 10
+    successThreshold: 1
+  readiness:
+    enabled: true
+    httpGet:
+      enabled: true
+      path: /rest/wikis/xwiki/spaces
+    initialDelaySeconds: 30
+    timeoutSeconds: 3
+    periodSeconds: 30
+    failureThreshold: 10
+    successThreshold: 1
+
+infinispan:
+  enabled: false
+  customConfig: ""
+  defaultMemoryMaxCount: 10000
+
+prometheus:
+  javaagent:
+    enabled: false
+    port: 12345
+    version: 0.20.0
+    url: https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/${PROMETHEUS_JAVAAGENT_VERSION}/jmx_prometheus_javaagent-${PROMETHEUS_JAVAAGENT_VERSION}.jar
+    config: |
+      rules:
+      - pattern: ".*"
+  podmonitor:
+    enabled: true
+    labels: {}
+
+customJdbc:
+  enabled: false

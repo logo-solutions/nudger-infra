@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euxo pipefail
+set -euo pipefail
 
 echo "🧠 Sanity Check - XWiki Kubernetes Terraform Deployment"
 echo "------------------------------------------------------"
@@ -17,7 +17,7 @@ fi
 ## 2. Kubectl
 echo "🔍 [2/10] Vérification de kubectl et du contexte actif..."
 if command -v kubectl >/dev/null 2>&1; then
-  kubectl version --short --client
+  kubectl version  --client
   if ! kubectl cluster-info >/dev/null 2>&1; then
     echo "❌ Cluster Kubernetes inaccessible"
   fi
