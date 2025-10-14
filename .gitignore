@@ -2,3 +2,5 @@ pat.md
 .DS_Store
 Docs/.DS_Store
 .terraform/
+terraform/xwiki/terraform.tfstate
+terraform/xwiki/terraform.tfstate.backup
