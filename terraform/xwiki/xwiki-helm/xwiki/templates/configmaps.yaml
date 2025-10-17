@@ -27,7 +27,7 @@ data:
   DB_HOST: "{{ .Release.Name }}-postgresql"
   DB_DATABASE: {{ .Values.postgresql.auth.database | quote }}
 {{- else }}
-  DB_USER: {{ .Values.externalDB.user | quote }}
+  DB_USER: {{ .Values.externalDB.username | quote }}
   DB_HOST: {{ .Values.externalDB.host | quote }}
   DB_DATABASE: {{ .Values.externalDB.database | quote }}
 {{- end }}

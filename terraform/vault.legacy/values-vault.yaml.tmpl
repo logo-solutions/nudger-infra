@@ -1,8 +1,7 @@
 server:
   dataStorage:
     enabled: true
-    size: 1Gi
-    storageClass: standard
+    existingClaim: data-vault-0
   ingress:
     enabled: true
     ingressClassName: nginx

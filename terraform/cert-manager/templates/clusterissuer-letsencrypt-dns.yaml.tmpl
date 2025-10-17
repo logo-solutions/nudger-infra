@@ -5,13 +5,12 @@ metadata:
 spec:
   acme:
     email: ${email}
-    server: ${environment == "staging" ? "https://acme-staging-v02.api.letsencrypt.org/directory" : "https://acme-v02.api.letsencrypt.org/directory"}
+    server: https://acme-v02.api.letsencrypt.org/directory
     privateKeySecretRef:
-      name: letsencrypt-dns-key
+      name: letsencrypt-dns
     solvers:
       - dns01:
           cloudflare:
-            email: ${email}
             apiTokenSecretRef:
               name: ${cloudflare_api_token_secret}
               key: api-token
