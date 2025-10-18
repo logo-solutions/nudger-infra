@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  namespace: xwiki
+spec:
+  serviceName: mysql
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: mysql
+          image: mysql:9.3.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3306
+              name: mysql
+          envFrom:
+            - secretRef:
+                name: mysql-credentials
+          args:
+            - "--skip-name-resolve"
+            - "--authentication_policy=* ,,"
+            - "--max_connections=200"
+            - "--explicit_defaults_for_timestamp"
+          readinessProbe:
+            exec:
+              command: ["mysqladmin", "ping", "-h", "127.0.0.1", "-pxwiki"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - bash
+                  - -c
+                  - |
+                    if [ ! -d /var/lib/mysql/mysql ]; then
+                      echo "⚙️ Initialisation du schéma MySQL..."
+                      mysqld --initialize-insecure --user=mysql
+                    fi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: xwiki
+spec:
+  ports:
+    - port: 3306
+  selector:
+    app: mysql

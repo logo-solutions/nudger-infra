@@ -1,0 +1,31 @@
+image:
+  repository: rancher/local-path-provisioner
+  tag: v0.0.32
+  pullPolicy: IfNotPresent
+
+storageClass:
+  name: local-path
+  defaultClass: true
+  reclaimPolicy: Delete
+  volumeBindingMode: WaitForFirstConsumer
+  provisionerName: rancher.io/local-path
+  allowVolumeExpansion: true
+
+nodePathMap:
+  - node: DEFAULT_PATH_FOR_NON_LISTED_NODES
+    paths:
+      - /opt/local-path-provisioner
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 128Mi
+
+serviceAccount:
+  create: true
+  name: local-path-provisioner-sa
+
+podAnnotations: {}

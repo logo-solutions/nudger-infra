@@ -2,6 +2,9 @@
 # ClusterIssuer Let's Encrypt (DNS-01, Cloudflare)
 ###############################################
 
+###############################################
+# ClusterIssuer Let's Encrypt (DNS-01, Cloudflare)
+###############################################
 resource "kubernetes_manifest" "clusterissuer_letsencrypt" {
   manifest = {
     apiVersion = "cert-manager.io/v1"
@@ -11,23 +14,26 @@ resource "kubernetes_manifest" "clusterissuer_letsencrypt" {
     }
     spec = {
       acme = {
-        email               = var.email
-        server              = "https://acme-v02.api.letsencrypt.org/directory"
+        email  = var.email
+        server = "https://acme-v02.api.letsencrypt.org/directory"
+
         privateKeySecretRef = {
-          name = "letsencrypt-dns"
+          name = "letsencrypt-dns-account-key"
         }
+
         solvers = [
           {
+            selector = {
+              dnsZones = [var.dns_zone]
+            }
             dns01 = {
               cloudflare = {
+                email = var.email
                 apiTokenSecretRef = {
                   name = kubernetes_secret.cloudflare_api_token.metadata[0].name
                   key  = "api-token"
                 }
               }
-            }
-            selector = {
-              dnsZones = [var.dns_zone]
             }
           }
         ]
@@ -37,10 +43,10 @@ resource "kubernetes_manifest" "clusterissuer_letsencrypt" {
 
   depends_on = [
     helm_release.cert_manager,
+    kubernetes_secret.cloudflare_api_token,
     null_resource.wait_for_certmanager_crds
   ]
 }
-
 ###############################################
 # Output de contrôle
 ###############################################

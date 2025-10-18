@@ -36,13 +36,51 @@ resource "helm_release" "ingress_nginx" {
 
   values = [yamlencode({
     controller = {
+      publishService = { enabled = true }
+      watchNamespace = ""
+      allowSnippetAnnotations = true
+      metrics = { enabled = false }
+
       service = {
-        type = "NodePort" # ou "LoadBalancer" si ton infra le permet
+        type = "NodePort"
         nodePorts = {
           http  = 30080
           https = 30443
         }
       }
+
+      containerPort = {
+        http  = 80
+        https = 443
+      }
+
+      extraArgs = {
+        "default-ssl-certificate" = "xwiki/tls-xwiki"
+      }
+
+      ingressClassResource = {
+        name = "nginx"
+        controllerValue = "k8s.io/ingress-nginx"
+        enabled = true
+        default = true
+      }
+
+      admissionWebhooks = {
+        enabled = true
+        patch = { enabled = true }
+      }
     }
   })]
+
+  depends_on = [kubernetes_namespace.ingress_nginx]
+}
+
+output "ingress_nginx_info" {
+  value = {
+    namespace = kubernetes_namespace.ingress_nginx.metadata[0].name
+    nodeports = {
+      http  = 30080
+      https = 30443
+    }
+  }
 }
