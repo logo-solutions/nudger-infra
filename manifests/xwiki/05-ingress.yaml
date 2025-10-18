@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: xwiki
+  namespace: xwiki
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-dns"
+    acme.cert-manager.io/http01-edit-in-place: "true"
+spec:
+  tls:
+    - hosts:
+        - xwiki.nudger.logo-solutions.fr
+      secretName: tls-xwiki
+  rules:
+    - host: xwiki.nudger.logo-solutions.fr
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: xwiki
+                port:
+                  number: 80
