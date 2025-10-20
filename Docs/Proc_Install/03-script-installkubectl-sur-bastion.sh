@@ -1,8 +1,13 @@
 #!/bin/bash
 set -euo pipefail
 
-# === Variables à adapter =====================
-MASTER_IP="91.98.16.184"
+# === Vérification des paramètres =====================
+if [ $# -ne 1 ]; then
+  echo "Usage: $0 <MASTER_IP>"
+  exit 1
+fi
+
+MASTER_IP="$1"
 MASTER_USER="root"
 REMOTE_KUBECONFIG_PATH="/root/.kube/config"
 LOCAL_KUBECONFIG_PATH="$HOME/.kube/config"
@@ -27,7 +32,7 @@ echo "📦 Création du dossier ~/.kube si besoin"
 mkdir -p "$HOME/.kube"
 
 echo "🔐 Récupération du fichier kubeconfig depuis $MASTER_IP"
-scp "${MASTER_USER}@${MASTER_IP}:${REMOTE_KUBECONFIG_PATH}" "$LOCAL_KUBECONFIG_PATH"
+scp -i ~/.ssh/hetzner-bastion "${MASTER_USER}@${MASTER_IP}:${REMOTE_KUBECONFIG_PATH}" "$LOCAL_KUBECONFIG_PATH"
 
 echo "🧪 Test de connexion au cluster..."
 kubectl get nodes
