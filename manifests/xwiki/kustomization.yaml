@@ -1,0 +1,7 @@
+# manifests/xwiki/kustomization.yaml
+
+resources:
+  - overlays/integration  # Référence au répertoire d'intégration
+  - base  # Si tu as des ressources de base à inclure (ex. secrets, configurations globales)
+
+# Si tu as d'autres personnalisations globales, comme des patches ou des transformations

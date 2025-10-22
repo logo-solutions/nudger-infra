@@ -1,0 +1,49 @@
+apiVersion: kustomize.config.k8s.io/v1beta1  # Changer la version ici
+kind: Kustomization
+
+resources:
+  - ../../base
+
+patches:
+  - target:
+      kind: Secret
+      name: mysql-credentials
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: "integration"
+  - target:
+      kind: Service
+      name: mysql
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: "integration"
+  - target:
+      kind: StatefulSet
+      name: mysql
+    patch: |-
+      - op: add
+        path: /spec/template/metadata/namespace
+        value: "integration"
+  - target:
+      kind: Deployment
+      name: xwiki
+    patch: |-
+      - op: add
+        path: /spec/template/metadata/namespace
+        value: "integration"
+  - target:
+      kind: PersistentVolumeClaim
+      name: xwiki-data
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: "integration"
+  - target:
+      kind: Service
+      name: xwiki
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: "integration"

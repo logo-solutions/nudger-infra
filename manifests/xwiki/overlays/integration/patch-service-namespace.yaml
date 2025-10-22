@@ -1,0 +1,9 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xwiki
+  namespace: integration  # Changer le namespace ici
+spec:
+  template:
+    metadata:
+      namespace: dd
