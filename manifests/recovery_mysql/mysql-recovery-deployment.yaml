@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-recovery
+  namespace: xwiki
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-recovery
+  template:
+    metadata:
+      labels:
+        app: mysql-recovery
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:9.3.0  # Utilisation de l'image MySQL 9.3.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3306
+              name: mysql
+          envFrom:
+            - secretRef:
+                name: mysql-credentials  # Utilisation des credentials pour la DB
+          args:
+            - "--skip-name-resolve"
+            - "--max_connections=200"
+            - "--explicit_defaults_for_timestamp"
+            # Ajoute ici d'autres arguments nécessaires si tu veux les réactiver, comme :
+            # - "--default-authentication-plugin=mysql_native_password"
+            # - "--innodb-force-recovery=1"
+            # - "--skip-grant-tables"
+          readinessProbe:
+            exec:
+              command:
+                - "mysqladmin"
+                - "ping"
+                - "-h"
+                - "127.0.0.1"
+                - "-pxwiki"
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql  # Le répertoire des données
+      volumes:
+        - name: mysql-data
+          persistentVolumeClaim:
