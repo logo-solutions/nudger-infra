@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - 00-namespace.yaml
 
 patches:
   - target:
