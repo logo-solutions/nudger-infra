@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: xwiki
-  namespace: xwiki
 spec:
   replicas: 1
   selector:
@@ -45,15 +44,3 @@ spec:
         - name: xwiki-data
           persistentVolumeClaim:
             claimName: xwiki-data
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: xwiki-data
-  namespace: xwiki
-spec:
-  accessModes: ["ReadWriteOnce"]
-  storageClassName: local-path
-  resources:
-    requests:
-      storage: 2Gi
