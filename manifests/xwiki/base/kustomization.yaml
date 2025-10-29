@@ -2,7 +2,6 @@
 
 resources:
   - 01-secrets.yaml
-  - 02-mysql.yaml
   - 02-mysql-service.yaml
   - 03-xwiki.yaml
   - 03-xwiki-pvc.yaml

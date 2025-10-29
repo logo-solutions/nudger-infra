@@ -1,7 +1,8 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: mysql
+  name: mysqlint
+  namespace: integration
 spec:
   serviceName: mysql
   replicas: 1
@@ -11,7 +12,7 @@ spec:
   template:
     metadata:
       labels:
-        app: mysql
+        app: mysqlint
     spec:
       terminationGracePeriodSeconds: 10
       containers:
@@ -28,9 +29,6 @@ spec:
             - "--skip-name-resolve"
             - "--max_connections=200"
             - "--explicit_defaults_for_timestamp"
-              #            - "--default-authentication-plugin=mysql_native_password"
-              #- "--innodb-force-recovery=1"
-              #- "--skip-grant-tables"
           readinessProbe:
             exec:
               command: ["mysqladmin", "ping", "-h", "127.0.0.1", "-pxwiki"]
@@ -43,30 +41,23 @@ spec:
                   - bash
                   - -c
                   - |
-                    if [ ! -d /var/lib/mysql/mysql ]; then
-                      echo "⚙️ Initialisation du schéma MySQL..."
-                      mysqld --initialize-insecure --user=mysql
-                      mysql -u root -e "GRANT ALL PRIVILEGES ON *.* TO 'xwiki'@'%' IDENTIFIED BY 'xwiki'; FLUSH PRIVILEGES;"
-                    fi
+                    echo "⚙️ Importation du dump MySQL..."
+                    mysql -u root -pxwiki < /mnt/dump/xwiki.sql
           volumeMounts:
             - name: data
               mountPath: /var/lib/mysql
+            - name: sql-dump
+              mountPath: /mnt/dump  # Monte le fichier SQL ici
+      volumes:
+        - name: sql-dump
+          configMap:
+            name: xwiki-dump   # Le ConfigMap contenant ton fichier SQL
   volumeClaimTemplates:
     - metadata:
-        name: data
+        name: dataint
       spec:
         accessModes: ["ReadWriteOnce"]
         storageClassName: local-path
         resources:
           requests:
             storage: 2Gi
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: mysql
-spec:
-  ports:
-    - port: 3306
-  selector:
-    app: mysql
