@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mysql-recovery
+  name: mysql-0
   namespace: integration
 spec:
   replicas: 1
@@ -11,7 +11,7 @@ spec:
   template:
     metadata:
       labels:
-        app: mysql-recovery
+        app: mysql
     spec:
       containers:
         - name: mysql

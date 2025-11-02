@@ -2,14 +2,14 @@
 
 # Variables
 NAMESPACE="integration"
-POD_NAME=$(kubectl get pods -n $NAMESPACE -l app=mysql-recovery -o jsonpath='{.items[0].metadata.name}')
+POD_NAME=$(kubectl get pods -n $NAMESPACE -l app=mysql -o jsonpath='{.items[0].metadata.name}')
 POD_DEST_PATH="/root/nudger-infra/manifests/recovery_mysql/xwiki-db-dump.sql"
 LOCAL_DUMP_PATH="./xwiki-db-dump.sql"
 TEMP_DEST_PATH="/tmp/xwiki-db-dump.sql"
 
 # Vérification de l'existence du pod
 if [ -z "$POD_NAME" ]; then
-  echo "❌ Aucun pod mysql-recovery trouvé dans le namespace $NAMESPACE"
+  echo "❌ Aucun pod mysqly trouvé dans le namespace $NAMESPACE"
   exit 1
 fi
 
