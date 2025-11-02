@@ -1,46 +1,47 @@
 #!/bin/bash
 
-# Nom du pod MySQL de récupération
-POD_NAME="mysql-recovery-7c8f776ff-gthxj"
-NAMESPACE="xwiki"
+# Variables
+NAMESPACE="integration"
+POD_NAME=$(kubectl get pods -n $NAMESPACE -l app=mysql -o jsonpath='{.items[0].metadata.name}')
+POD_DEST_PATH="/root/nudger-infra/manifests/recovery_mysql/xwiki-db-dump.sql"
+LOCAL_DUMP_PATH="./xwiki-db-dump.sql"
+TEMP_DEST_PATH="/tmp/xwiki-db-dump.sql"
 
-# Emplacement du fichier de dump dans ton système local
-DUMP_FILE="./xwiki-db-dump.sql"
-POD_DEST_PATH="/tmp/xwiki-db-dump.sql"
-
-# Étape 1 : Vérifier si le fichier de dump existe
-if [ ! -f "$DUMP_FILE" ]; then
-  echo "❌ Fichier de dump introuvable : $DUMP_FILE"
+# Vérification de l'existence du pod
+if [ -z "$POD_NAME" ]; then
+  echo "❌ Aucun pod mysqly trouvé dans le namespace $NAMESPACE"
   exit 1
 fi
 
-# Étape 2 : Copier le fichier de dump dans le pod
-echo "📤 Copier le fichier de dump dans le pod..."
-kubectl cp $DUMP_FILE $NAMESPACE/$POD_NAME:$POD_DEST_PATH
+echo "📦 Pod cible : $POD_NAME dans le namespace $NAMESPACE"
 
-# Vérification si la copie a réussi
+# Copier le fichier de dump dans le pod
+echo "📤 Copie du fichier de dump dans le pod..."
+kubectl cp $LOCAL_DUMP_PATH $NAMESPACE/$POD_NAME:$TEMP_DEST_PATH
+
+# Vérification de la copie
 if [ $? -ne 0 ]; then
-  echo "❌ Erreur lors de la copie du fichier de dump dans le pod."
+  echo "❌ Erreur lors de la copie du fichier de dump."
   exit 1
 fi
 
-echo "✅ Fichier de dump copié dans le pod avec succès."
+echo "✅ Fichier de dump copié avec succès."
 
-# Étape 3 : Importer le fichier de dump dans la base de données XWiki
-echo "📥 Importer le dump dans la base de données XWiki..."
-kubectl exec -it $POD_NAME -n $NAMESPACE -- /bin/sh -c "mysql -u root -pxwiki xwiki < $POD_DEST_PATH"
+# Importer le dump dans la base MySQL
+echo "📥 Importation du dump dans la base MySQL..."
+kubectl exec -it $POD_NAME -n $NAMESPACE -- /bin/sh -c "mysql -u root -pxwiki xwiki < $TEMP_DEST_PATH"
 
-# Vérification si l'importation a réussi
+# Vérification de l'importation
 if [ $? -ne 0 ]; then
-  echo "❌ Erreur lors de l'importation du dump dans la base de données."
+  echo "❌ Erreur lors de l'importation du dump."
   exit 1
 fi
 
-echo "✅ Importation du dump réussie dans la base de données XWiki."
+echo "✅ Importation réussie."
 
-# Étape 4 : Vérification de l'importation en listant les tables
-echo "🧐 Vérification des tables dans la base de données XWiki..."
+# Vérification des tables dans la base XWiki
+echo "🧐 Vérification des tables dans la base XWiki..."
 kubectl exec -it $POD_NAME -n $NAMESPACE -- /bin/sh -c "mysql -u root -pxwiki -e 'SHOW TABLES;' xwiki"
 
 # Conclusion
-echo "✅ L'importation et la vérification ont été effectuées avec succès."
+echo "✅ L'importation et la vérification des tables ont été effectuées avec succès."

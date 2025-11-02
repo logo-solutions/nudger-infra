@@ -7,6 +7,13 @@ resources:
 
 patches:
   - target:
+      kind: Ingress
+      name: xwiki
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: "integration"
+  - target:
       kind: Secret
       name: mysql-credentials
     patch: |-

@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xwiki-frontend-mysql
+  namespace: integration
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xwiki-frontend
+  template:
+    metadata:
+      labels:
+        app: xwiki-frontend
+    spec:
+      containers:
+        - name: xwiki-frontend
+          image: mysql:8.0  # Utilisation de l'image MySQL client avec MySQL server inclus
+          command:
+            - /bin/sh
+            - -c
+            - |
+              while true; do
+                echo "Test de connexion à MySQL..."
+                mysql -u xwiki -pxwiki -h mysql.integration.svc.cluster.local -e "SHOW TABLES;" xwiki
+                sleep 30  # Vérifie la connexion toutes les 30 secondes
+              done
+          env:
+            - name: MYSQL_HOST
+              value: "mysql.integration.svc.cluster.local"
+            - name: MYSQL_USER
+              value: "xwiki"
+            - name: MYSQL_PASSWORD
+              value: "xwiki"
+            - name: MYSQL_DB
+              value: "xwiki"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xwiki-frontend
+  namespace: integration
+spec:
+  selector:
+    app: xwiki-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
