@@ -1,4 +1,3 @@
-terraform init -upgrade
 terraform apply -auto-approve \
   -var "email=loicgourmelon@gmail.com" \
   -var "dns_zone=logo-solutions.fr" \

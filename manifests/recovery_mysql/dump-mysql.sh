@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # Paramètres de la base de données
-MYSQL_POD_NAME="mysql-0"
-MYSQL_NAMESPACE="xwiki"
+MYSQL_POD_NAME=$(kubectl get pods -n integration -l app=mysql -o jsonpath='{.items[0].metadata.name}')
+
+MYSQL_NAMESPACE="integration"
 MYSQL_DB_NAME="xwiki"
 MYSQL_USER="root"
 MYSQL_PASSWORD="xwiki"

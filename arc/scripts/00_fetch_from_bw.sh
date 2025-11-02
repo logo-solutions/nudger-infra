@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -exuo pipefail
+set -euo pipefail
 source "$(dirname "$0")/../arc.env"
 source "$(dirname "$0")/arc_common.sh"
 
