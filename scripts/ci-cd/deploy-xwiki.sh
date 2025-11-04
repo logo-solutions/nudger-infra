@@ -8,7 +8,18 @@ set -euo pipefail
 ENVIRONMENT="${1:-}"
 IMAGE_TAG="${2:-}"
 
-MANIFEST_PATH="/root/nudger-infra/manifests/xwiki/overlays/$ENVIRONMENT"
+
+# 🔍 Détection du répertoire racine du dépôt
+if [[ -d "/root/nudger-infra" ]]; then
+  BASE_DIR="/root/nudger-infra"
+elif [[ -n "${GITHUB_WORKSPACE:-}" && -d "${GITHUB_WORKSPACE}" ]]; then
+  BASE_DIR="${GITHUB_WORKSPACE}"
+else
+  BASE_DIR="$(pwd)"
+fi
+
+MANIFEST_PATH="${BASE_DIR}/manifests/xwiki/overlays/${ENVIRONMENT}"
+
 
 # Couleurs
 GREEN="\033[0;32m"
