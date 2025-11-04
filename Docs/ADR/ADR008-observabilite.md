@@ -66,7 +66,3 @@ Cette approche permet de **livrer une production fonctionnelle, maintenable et s
 
 ---
 
-**Rédacteur :** Loïc Bourmelon  
-**Revu par :** Thomas Toussaint  
-**Dernière mise à jour :** 2025-11-04
-

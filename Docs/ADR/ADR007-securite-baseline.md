@@ -109,7 +109,3 @@ d’abord PSA Baseline sur tous les namespaces, puis ajout progressif des polici
 
 ---
 
-**Rédacteur :** Loïc Bourmelon  
-**Revu par :** Thomas Toussaint  
-**Dernière mise à jour :** 2025-11-04
-
