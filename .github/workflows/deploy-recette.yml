@@ -31,3 +31,4 @@ jobs:
         run: |
           chmod +x scripts/ci-cd/deploy-xwiki.sh
           ./scripts/ci-cd/deploy-xwiki.sh recette
+
