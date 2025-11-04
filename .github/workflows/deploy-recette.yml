@@ -2,9 +2,10 @@ name: Deploy XWiki to Recette
 
 on:
   pull_request:
-    types: [closed]
+    types: [opened, synchronize, reopened, closed]
     branches:
-      - develop
+      - deploy
+  workflow_dispatch:  # Permet de déclencher manuellement
 
 jobs:
   deploy-recette:
