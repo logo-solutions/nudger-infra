@@ -106,7 +106,3 @@ Une évolution vers **MetalLB** est envisagée à moyen terme pour offrir une IP
 
 ---
 
-**Rédacteur :** Loïc Bourmelon  
-**Revu par :** Thomas Toussaint  
-**Dernière mise à jour :** 2025-11-04
-

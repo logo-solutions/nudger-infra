@@ -1,9 +1,6 @@
 # ADR010 – Architecture de gestion des secrets : Vault Bastion ↔ Vault Kubernetes ↔ Terraform
 
 **Date :** 2025-10-13  
-**Auteur :** Loïc Bourmelon  
-**Statut :** ✅ Acceptée  
-**Version :** 1.0
 
 ---
 
