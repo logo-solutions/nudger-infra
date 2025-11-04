@@ -6,6 +6,11 @@ on:
     branches:
       - deploy
   workflow_dispatch:  # Permet de déclencher manuellement
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'recette'
 
 jobs:
   deploy-recette:
@@ -13,6 +18,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Débogage des données du pull request
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Action: ${{ github.event.action }}"
+          echo "PR merged: ${{ github.event.pull_request.merged }}"
+          echo "PR state: ${{ github.event.pull_request.state }}"
       - name: 🧰 Checkout repository
         uses: actions/checkout@v4
 
@@ -25,5 +36,4 @@ jobs:
 
       - name: 🧩 Run deployment script
         run: |
-          chmod +x scripts/deploy-xwiki.sh
-          ./scripts/deploy-xwiki.sh recette
+          ./scripts/ci-cd/deploy-xwiki.sh
