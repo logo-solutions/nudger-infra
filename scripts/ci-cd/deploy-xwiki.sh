@@ -8,8 +8,7 @@ set -euo pipefail
 ENVIRONMENT="${1:-}"
 IMAGE_TAG="${2:-}"
 
-BASE_DIR="$HOME/nudger-infra"
-MANIFEST_PATH="$BASE_DIR/manifests/xwiki/overlays/$ENVIRONMENT"
+MANIFEST_PATH="/root/nudger-infra/manifests/xwiki/overlays/$ENVIRONMENT"
 
 # Couleurs
 GREEN="\033[0;32m"
