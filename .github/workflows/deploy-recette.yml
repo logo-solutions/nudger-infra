@@ -5,6 +5,7 @@ on:
     types: [opened, synchronize, reopened, closed]
     branches:
       - deploy
+
 jobs:
   deploy-recette:
     if: github.event.pull_request.merged == true
