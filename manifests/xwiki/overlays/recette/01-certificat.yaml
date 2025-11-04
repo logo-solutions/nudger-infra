@@ -1,0 +1,16 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: xwiki-cert
+  namespace: recette
+spec:
+  secretName: xwiki-cert-tls
+  issuerRef:
+    name: letsencrypt-dns
+    kind: ClusterIssuer
+  commonName: 'xwiki.recette.nudger.logo-solutions.fr'
+  dnsNames:
+    - 'xwiki.recette.nudger.logo-solutions.fr'
+    - 'www.xwiki.recette.nudger.logo-solutions.fr'
+  duration: 2160h
+  renewBefore: 360h

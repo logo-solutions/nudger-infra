@@ -3,47 +3,62 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - 00-namespace.yaml
+  - 01-certificat.yaml
 
 patches:
+  - target:
+      kind: Ingress
+      name: xwiki
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: "recette"
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: "xwiki.recette.nudger.logo-solutions.fr"
+      - op: replace
+        path: /spec/rules/0/host
+        value: "xwiki.recette.nudger.logo-solutions.fr"
   - target:
       kind: Secret
       name: mysql-credentials
     patch: |-
       - op: add
         path: /metadata/namespace
-        value: "integration"
+        value: "recette"
   - target:
       kind: Service
       name: mysql
     patch: |-
       - op: add
         path: /metadata/namespace
-        value: "integration"
+        value: "recette"
   - target:
-      kind: StatefulSet
-      name: mysql
+      kind: Deployment
+      name: mysql-0
     patch: |-
       - op: add
-        path: /spec/template/metadata/namespace
-        value: "integration"
+        path: /metadata/namespace
+        value: "recette"
   - target:
       kind: Deployment
       name: xwiki
     patch: |-
       - op: add
-        path: /spec/template/metadata/namespace
-        value: "integration"
+        path: /metadata/namespace
+        value: "recette"
   - target:
       kind: PersistentVolumeClaim
       name: xwiki-data
     patch: |-
       - op: add
         path: /metadata/namespace
-        value: "integration"
+        value: "recette"
   - target:
       kind: Service
       name: xwiki
     patch: |-
       - op: add
         path: /metadata/namespace
-        value: "integration"
+        value: "recette"

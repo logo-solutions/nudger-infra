@@ -1,20 +1,21 @@
-terraform {
-  required_providers {
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "~> 2.29"
-    }
-  }
-}
-
 provider "kubernetes" {
   config_path = pathexpand("~/.kube/config")
 }
 
-variable "email" {}
-variable "dns_zone" {}
+variable "email" {
+  description = "Email address for Let's Encrypt ACME registration"
+  type        = string
+}
+
+variable "dns_zone" {
+  description = "DNS zone for Cloudflare"
+  type        = string
+}
+
 variable "cloudflare_api_token" {
-  sensitive = true
+  description = "Cloudflare API token"
+  type        = string
+  sensitive   = true
 }
 
 # Secret Cloudflare
@@ -31,30 +32,30 @@ resource "kubernetes_secret" "cloudflare_api_token" {
   type = "Opaque"
 }
 
-# ClusterIssuer
+# ClusterIssuer for Let's Encrypt DNS-01 via Cloudflare
 resource "kubernetes_manifest" "clusterissuer_letsencrypt" {
   manifest = {
     apiVersion = "cert-manager.io/v1"
     kind       = "ClusterIssuer"
-    metadata = {
+    metadata   = {
       name = "letsencrypt-dns"
     }
-    spec = {
+    spec       = {
       acme = {
-        email  = var.email
-        server = "https://acme-v02.api.letsencrypt.org/directory"
+        email               = var.email
         privateKeySecretRef = {
           name = "letsencrypt-dns-account-key"
         }
+        server = "https://acme-v02.api.letsencrypt.org/directory"
         solvers = [
           {
             dns01 = {
               cloudflare = {
-                email = var.email
                 apiTokenSecretRef = {
-                  name = kubernetes_secret.cloudflare_api_token.metadata[0].name
                   key  = "api-token"
+                  name = "cloudflare-api-token-secret"
                 }
+                email = var.email
               }
             }
           }
@@ -63,5 +64,12 @@ resource "kubernetes_manifest" "clusterissuer_letsencrypt" {
     }
   }
 
-  depends_on = [kubernetes_secret.cloudflare_api_token]
+  # Cette configuration s'assure que la ressource ne sera pas détruite par erreur
+  lifecycle {
+    prevent_destroy = true
+  }
+
+  depends_on = [
+    kubernetes_secret.cloudflare_api_token
+  ]
 }

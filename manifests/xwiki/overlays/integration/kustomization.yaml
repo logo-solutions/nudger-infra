@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - ../../base
   - 00-namespace.yaml
+  - 01-certificat.yaml
 
 patches:
   - target:
@@ -13,6 +14,12 @@ patches:
       - op: add
         path: /metadata/namespace
         value: "integration"
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: "xwiki.integration.nudger.logo-solutions.fr"
+      - op: replace
+        path: /spec/rules/0/host
+        value: "xwiki.integration.nudger.logo-solutions.fr"
   - target:
       kind: Secret
       name: mysql-credentials
@@ -28,8 +35,8 @@ patches:
         path: /metadata/namespace
         value: "integration"
   - target:
-      kind: StatefulSet
-      name: mysql
+      kind: Deployment
+      name: mysql-0
     patch: |-
       - op: add
         path: /metadata/namespace
