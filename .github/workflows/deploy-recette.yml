@@ -6,6 +6,11 @@ on:
     branches:
       - deploy
   workflow_dispatch:  # Permet de déclencher manuellement
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'recette'
 
 jobs:
   deploy-recette:
