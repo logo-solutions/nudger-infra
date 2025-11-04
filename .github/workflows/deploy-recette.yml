@@ -1,0 +1,28 @@
+name: Deploy XWiki to Recette
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - develop
+
+jobs:
+  deploy-recette:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🧰 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔐 Configure kubectl
+        env:
+          KUBECONFIG_CONTENTS: ${{ secrets.KUBECONFIG_CONTENTS }}
+        run: |
+          mkdir -p ~/.kube
+          echo "$KUBECONFIG_CONTENTS" > ~/.kube/config
+
+      - name: 🧩 Run deployment script
+        run: |
+          chmod +x scripts/deploy-xwiki.sh
+          ./scripts/deploy-xwiki.sh recette

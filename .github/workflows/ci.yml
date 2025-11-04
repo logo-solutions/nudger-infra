@@ -1,0 +1,15 @@
+name: CI Workflow
+
+on: 
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: self-hosted  # Ce job sera exécuté sur ton runner auto-hébergé
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Run a simple script
+        run: echo "Hello from self-hosted runner!"

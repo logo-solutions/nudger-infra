@@ -1,0 +1,64 @@
+apiVersion: kustomize.config.k8s.io/v1beta1  # Changer la version ici
+kind: Kustomization
+
+resources:
+  - ../../base
+  - 00-namespace.yaml
+  - 01-certificat.yaml
+
+patches:
+  - target:
+      kind: Ingress
+      name: xwiki
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: "recette"
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: "xwiki.recette.nudger.logo-solutions.fr"
+      - op: replace
+        path: /spec/rules/0/host
+        value: "xwiki.recette.nudger.logo-solutions.fr"
+  - target:
+      kind: Secret
+      name: mysql-credentials
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: "recette"
+  - target:
+      kind: Service
+      name: mysql
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: "recette"
+  - target:
+      kind: Deployment
+      name: mysql-0
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: "recette"
+  - target:
+      kind: Deployment
+      name: xwiki
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: "recette"
+  - target:
+      kind: PersistentVolumeClaim
+      name: xwiki-data
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: "recette"
+  - target:
+      kind: Service
+      name: xwiki
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: "recette"
