@@ -2,9 +2,15 @@ name: Deploy XWiki to Recette
 
 on:
   pull_request:
-    types: [closed]
+    types: [opened, synchronize, reopened, closed]
     branches:
-      - develop
+      - deploy
+  workflow_dispatch:
+
+permissions:
+  contents: write  # Permet l'écriture sur le contenu du repository
+  pull-requests: write  # Permet l'écriture sur les PR (utile pour les merges ou la gestion des PR)
+  actions: read  # Permet la lecture des actions et de leurs logs
 
 jobs:
   deploy-recette:
@@ -24,5 +30,5 @@ jobs:
 
       - name: 🧩 Run deployment script
         run: |
-          chmod +x scripts/deploy-xwiki.sh
-          ./scripts/deploy-xwiki.sh recette
+          chmod +x scripts/ci-cd/deploy-xwiki.sh
+          ./scripts/ci-cd/deploy-xwiki.sh recette
