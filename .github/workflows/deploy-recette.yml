@@ -5,6 +5,7 @@ on:
     types: [opened, synchronize, reopened, closed]
     branches:
       - deploy
+  workflow_dispatch:  # Permet de déclencher manuellement
 
 jobs:
   deploy-recette:
