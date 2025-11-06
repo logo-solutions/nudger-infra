@@ -5,25 +5,20 @@ on:
     types: [opened, synchronize, reopened, closed]
     branches:
       - deploy
-  workflow_dispatch:  # Permet de déclencher manuellement
-    inputs:
-      environment:
-        description: 'Environment to deploy to'
-        required: true
-        default: 'recette'
+  workflow_dispatch:
+
+permissions:
+  contents: write  # Permet l'écriture sur le contenu du repository
+  pull-requests: write  # Permet l'écriture sur les PR (utile pour les merges ou la gestion des PR)
+  actions: read  # Permet la lecture des actions et de leurs logs
 
 jobs:
   deploy-recette:
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    env: 
+      KUBECONFIG_CONTENTS: ${{ secrets.KUBECONFIG_CONTENTS }}
 
     steps:
-      - name: Débogage des données du pull request
-        run: |
-          echo "Event: ${{ github.event_name }}"
-          echo "Action: ${{ github.event.action }}"
-          echo "PR merged: ${{ github.event.pull_request.merged }}"
-          echo "PR state: ${{ github.event.pull_request.state }}"
       - name: 🧰 Checkout repository
         uses: actions/checkout@v4
 
@@ -36,4 +31,5 @@ jobs:
 
       - name: 🧩 Run deployment script
         run: |
-          ./scripts/ci-cd/deploy-xwiki.sh
+          chmod +x scripts/ci-cd/deploy-xwiki.sh
+          ./scripts/ci-cd/deploy-xwiki.sh recette

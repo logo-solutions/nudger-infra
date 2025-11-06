@@ -1,9 +1,10 @@
 name: CI Workflow
 
 on: 
-  push:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
     branches:
-      - main
+      - deploy
 
 jobs:
   build:

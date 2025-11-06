@@ -1,0 +1,1 @@
+curl -X GET "https://api.cloudflare.com/client/v4/zones" -H "Authorization: Bearer $(kubectl get secret cloudflare-api-token-secret -n cert-manager -o jsonpath='{.data.api-token}' | base64 --decode)kubectl logs -n cert-manager -l app=cert-manager -f

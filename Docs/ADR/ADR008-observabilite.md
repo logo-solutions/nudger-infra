@@ -1,26 +1,68 @@
-# ADR008 – Observabilité et monitoring
-**Date** : 2025-09-26  
-**Statut** : Accepté (mis à jour)
+# 🧾 ADR008 – Observabilité et monitoring (version allégée)
 
-## Contexte
-Un cluster de production nécessite supervision (métriques, logs, dashboards).  
-Mais les besoins diffèrent fortement entre un environnement de test (1 nœud, ressources limitées) et une production stable.
+**Date :** 2025-09-26  
+**Statut :** 🟢 Adopté (version adaptée à la production simplifiée)
 
-Options :
-- **Phase tests** : métriques et logs basiques.  
-- **Phase prod** : stack complète open-source (Prometheus, Grafana, Loki).  
-- **Solutions externes** (Datadog, NewRelic).
+---
 
-## Décision
-- En **phase tests** : nous déployons seulement les composants minimaux :  
-  - `metrics-server` pour usage `kubectl top`,  
-  - `kube-state-metrics` pour état du cluster,  
-  - logs locaux via container runtime.  
+## 🎯 Contexte
 
-- En **phase prod** : nous déploierons la stack complète **Prometheus Operator + Grafana + Loki**, avec dashboards préconfigurés et alertes.
+L’objectif est d’assurer un niveau d’observabilité cohérent avec la taille et les besoins actuels du projet **Nudger / XWiki**, sans introduire de complexité inutile.  
+Le client souhaite **éviter la stack Prometheus + Grafana + Loki**, jugée trop lourde pour une première phase d’exploitation.  
 
-## Conséquences
-- ✅ Phase tests : faible consommation de ressources, simplicité.  
-- ✅ Phase prod : observabilité complète, alertes et dashboards robustes.  
-- ❌ Besoin de migration/ajout de composants lors du passage en prod.  
-- ❌ Maintenance des mises à jour charts/alertes en prod.
+Le cluster reste de taille modeste (1 à 3 nœuds) et ne justifie pas la mise en place d’un écosystème complet de métriques et d’alertes.
+
+---
+
+## ⚙️ Alternatives retenues
+
+### 1. Composants natifs Kubernetes
+
+- **metrics-server** → expose les métriques CPU et mémoire via `kubectl top`.  
+- **kube-state-metrics** → permet de surveiller l’état général du cluster et des ressources.  
+- **kubectl logs / k9s / Lens** → lecture et navigation dans les logs sans outil externe.  
+- **journalctl** → diagnostic au niveau des nœuds.  
+
+Ces outils couvrent **80 % des besoins courants** pour un petit cluster :  
+vérification de charge, état des pods, suivi des namespaces et inspection rapide en cas d’erreur.
+
+---
+
+## 🧩 Décision
+
+### 🧪 Phase intégration / recette
+- Utilisation **exclusivement des outils natifs** Kubernetes (metrics-server, kube-state-metrics, kubectl logs).  
+- Accès via `kubectl`, `k9s` ou `Lens` depuis le poste d’administration.  
+- Pas d’installation de stack lourde (Prometheus, Grafana, Loki).  
+- Logging local géré via `containerd` et inspection ponctuelle via CLI.
+
+### ⚙️ Phase production
+- Maintien du **même modèle simplifié**, avec quelques automatisations supplémentaires :  
+  - script `sanitycheck` pour tester l’état du cluster,  
+  - alertes basiques par cron (vérification de pods en erreur).  
+- Sauvegarde des logs critiques des applications (ex. XWiki, MySQL) sur volume persistant.  
+- En cas de montée en charge future → possibilité d’ajouter la stack Prometheus + Grafana + Loki.
+
+---
+
+## ⚖️ Avantages et inconvénients
+
+| Type | Détails |
+|------|----------|
+| ✅ **Avantages** | - Très faible empreinte sur les ressources du cluster.<br>- Maintenance quasi nulle.<br>- Accès direct aux données via les commandes Kubernetes.<br>- Déploiement instantané, sans Helm chart supplémentaire.<br>- Adapté à un usage mono-application (XWiki). |
+| ⚠️ **Inconvénients** | - Pas d’historisation longue durée.<br>- Pas de dashboards consolidés.<br>- Absence d’alerting avancé ou de corrélation logs/métriques.<br>- Supervision essentiellement manuelle. |
+
+---
+
+## 🧭 Recommandation finale
+
+| Environnement | Stack observabilité | Objectif | Charge |
+|----------------|--------------------|-----------|--------|
+| **Intégration** | `metrics-server`, `kube-state-metrics`, `kubectl logs` | Suivi basique | ⚡ Très légère |
+| **Recette** | idem + usage de `Lens` ou `k9s` | Validation fonctionnelle | ⚡ Légère |
+| **Production** | mêmes outils + scripts de vérification périodiques | Supervision manuelle adaptée | ⚡ Légère |
+
+Cette approche permet de **livrer une production fonctionnelle, maintenable et simplifiée**, tout en laissant la porte ouverte à une future montée en puissance (intégration de Prometheus/Grafana/Loki si besoin).
+
+---
+
