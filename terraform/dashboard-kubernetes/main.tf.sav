@@ -1,0 +1,88 @@
+provider "kubernetes" {
+  # Configuration du provider Kubernetes ici
+  config_path = pathexpand("~/.kube/config")
+}
+resource "kubernetes_secret" "dashboard_csrf" {
+  metadata {
+    name      = "kubernetes-dashboard-csrf"
+    namespace = "kubernetes-dashboard"
+  }
+
+  data = {
+    csrf_token = base64encode("un_token_aleatoire")  # Remplacez par un token sécurisé ou générez un token aléatoire
+  }
+}
+resource "kubernetes_cluster_role_binding" "dashboard-access" {
+  metadata {
+    name = "dashboard-access"
+  }
+
+  subject {
+    kind      = "ServiceAccount"
+    name      = "default"
+    namespace = "kubernetes-dashboard"
+  }
+
+  role_ref {
+    kind     = "ClusterRole"
+    name     = "admin"
+    api_group = "rbac.authorization.k8s.io"
+  }
+}
+resource "kubernetes_namespace" "dashboard" {
+  metadata {
+    name = "kubernetes-dashboard"
+  }
+}
+resource "kubernetes_deployment" "dashboard" {
+  metadata {
+    name      = "kubernetes-dashboard"
+    namespace = "kubernetes-dashboard"
+  }
+
+  spec {
+    replicas = 1
+    selector {
+      match_labels = {
+        app = "kubernetes-dashboard"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          app = "kubernetes-dashboard"
+        }
+      }
+
+      spec {
+        container {
+          name  = "kubernetes-dashboard"
+          image = "kubernetesui/dashboard:v2.5.0"
+          port {
+            container_port = 443
+          }
+        }
+      }
+    }
+  }
+}
+
+# RoleBinding pour accorder un accès admin
+resource "kubernetes_cluster_role_binding" "dashboard-admin-binding" {
+  metadata {
+    name = "dashboard-admin-binding"
+  }
+
+  subject {
+    kind      = "ServiceAccount"
+    name      = "dashboard"
+    namespace = "kubernetes-dashboard"
+  }
+
+  role_ref {
+    kind = "ClusterRole"
+    name = "cluster-admin"
+    api_group = "rbac.authorization.k8s.io"  
+  }
+}

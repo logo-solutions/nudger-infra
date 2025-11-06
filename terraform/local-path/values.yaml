@@ -18,7 +18,7 @@ nodePathMap:
 
 resources:
   requests:
-    cpu: 50m
+    cpu: 150m
     memory: 64Mi
   limits:
     cpu: 250m
