@@ -6,7 +6,7 @@ terraform {
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "~> 2.29"
+      version = "~> 2.38"
     }
   }
 }
@@ -20,7 +20,6 @@ provider "helm" {
     config_path = pathexpand("~/.kube/config")
   }
 }
-
 
 resource "kubernetes_namespace" "ingress_nginx" {
   metadata {
@@ -98,7 +97,7 @@ resource "helm_release" "ingress_nginx" {
       }
 
       extraArgs = {
-        "default-ssl-certificate" = "recette/tls-xwiki"  # Utilisation du certificat pour recette
+        "default-ssl-certificate" = "recette/tls-xwiki"
       }
 
       ingressClassResource = {
@@ -118,7 +117,7 @@ resource "helm_release" "ingress_nginx" {
   depends_on = [kubernetes_namespace.ingress_nginx]
 }
 
-# Créer l'Ingress pour le namespace Recette
+# Créer les Ingress pour les environnements recette et intégration
 resource "kubernetes_manifest" "ingress_xwiki_recette" {
   manifest = {
     apiVersion = "networking.k8s.io/v1"
@@ -162,7 +161,6 @@ resource "kubernetes_manifest" "ingress_xwiki_recette" {
   }
 }
 
-# Créer l'Ingress pour le namespace Integration
 resource "kubernetes_manifest" "ingress_xwiki_integration" {
   manifest = {
     apiVersion = "networking.k8s.io/v1"
@@ -206,6 +204,19 @@ resource "kubernetes_manifest" "ingress_xwiki_integration" {
   }
 }
 
+# ✅ Patch du déploiement ingress-nginx-controller via kubectl (local-exec)
+resource "null_resource" "patch_ingress_nginx_hostnetwork" {
+  provisioner "local-exec" {
+    command = <<EOT
+kubectl patch deployment ingress-nginx-controller -n ingress-nginx \
+  -p '{"spec":{"template":{"spec":{"hostNetwork":true,"dnsPolicy":"ClusterFirstWithHostNet"}}}}'
+EOT
+  }
+
+  depends_on = [helm_release.ingress_nginx]
+}
+
+# Sorties
 output "ingress_nginx_info" {
   value = {
     namespace = kubernetes_namespace.ingress_nginx.metadata[0].name
