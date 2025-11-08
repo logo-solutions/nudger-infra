@@ -1,3 +1,4 @@
+############### BR FILTER
 - name: Ensure br_netfilter module is loaded
   modprobe:
     name: br_netfilter
@@ -13,3 +14,5 @@
 
 - name: Apply sysctl configuration
   command: sysctl --system◊
+=======================
+ kubescape scan framework nsa
