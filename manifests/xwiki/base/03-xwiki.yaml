@@ -12,6 +12,10 @@ spec:
       labels:
         app: xwiki
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        fsGroup: 1000   # groupe qui possèdera les fichiers du volume
+
       containers:
         - name: xwiki
           image: xwiki:17.3.0-mysql-tomcat
@@ -37,6 +41,19 @@ spec:
                   key: MYSQL_DATABASE
             - name: DB_HOST
               value: mysql
+          # Durcissement du container
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - "ALL"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
           volumeMounts:
             - name: xwiki-data
               mountPath: /usr/local/xwiki/data

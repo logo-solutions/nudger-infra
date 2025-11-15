@@ -1,0 +1,36 @@
+controller:
+  # Ton usage : NodePort + SSL default cert
+  allowSnippetAnnotations: false
+
+  # HARDENING SAFE
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - NET_RAW
+
+  podSecurityContext:
+    seccompProfile:
+      type: RuntimeDefault
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # Si tu veux hostNetwork : ici, pas en patch externe
+
+admissionWebhooks:
+  patch:
+    enabled: true
+    podSecurityContext:
+      seccompProfile:
+        type: RuntimeDefault
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - NET_RAW

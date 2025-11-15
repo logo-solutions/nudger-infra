@@ -1,0 +1,18 @@
+# HARDENING GRAFANA
+
+automountServiceAccountToken: false
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 472              # UID officiel Grafana
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 1
+    memory: 512Mi

@@ -1,0 +1,39 @@
+# HARDENING PROMETHEUS
+
+server:
+  automountServiceAccountToken: false
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534            # nobody
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+
+  resources:
+    requests:
+      cpu: 300m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+
+# metrics exporter = kube-state-metrics
+# NE PAS désactiver automount ici
+kubeStateMetrics:
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# Pushgateway est disabled dans ton chart → rien à faire
+
+alertmanager:
+  enabled: false

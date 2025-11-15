@@ -40,30 +40,34 @@ resource "helm_release" "prometheus" {
   chart      = "prometheus"
   version    = "25.8.0"
 
-  values = [yamlencode({
-    alertmanager = { enabled = false }
-    pushgateway  = { enabled = false }
+  values = [
+    yamlencode({
+      alertmanager = { enabled = false }
+      pushgateway  = { enabled = false }
 
-    server = {
-      global = {
-        scrape_interval = "30s"
+      server = {
+        global = {
+          scrape_interval = "30s"
+        }
+        service = {
+          type = "ClusterIP"
+          port = 9090
+        }
       }
-      service = {
-        type = "ClusterIP"
-        port = 9090
-      }
-    }
 
-    extraScrapeConfigs = <<-EOT
-      - job_name: 'kube-state-metrics'
-        static_configs:
-        - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
+      extraScrapeConfigs = <<-EOT
+        - job_name: 'kube-state-metrics'
+          static_configs:
+          - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
 
-      - job_name: 'metrics-server'
-        static_configs:
-        - targets: ['metrics-server.kubernetes-dashboard.svc.cluster.local:443']
-    EOT
-  })]
+        - job_name: 'metrics-server'
+          static_configs:
+          - targets: ['metrics-server.kubernetes-dashboard.svc.cluster.local:443']
+      EOT
+    }),
+
+    file("${path.module}/prometheus-values-hardening.yaml")
+  ]
 
   depends_on = [kubernetes_namespace.monitoring]
 }
@@ -78,34 +82,38 @@ resource "helm_release" "grafana" {
   chart      = "grafana"
   version    = "8.6.1"
 
-  values = [yamlencode({
-    adminUser     = "admin"
-    adminPassword = "admin"
-    service = {
-      type = "NodePort"
-      nodePort = 30300
-    }
-
-    datasources = {
-      "datasources.yaml" = {
-        apiVersion = 1
-        datasources = [
-          {
-            name      = "Prometheus"
-            type      = "prometheus"
-            url       = "http://prometheus-server.monitoring.svc.cluster.local"
-            access    = "proxy"
-            isDefault = true
-          }
-        ]
+  values = [
+    yamlencode({
+      adminUser     = "admin"
+      adminPassword = "admin"
+      service = {
+        type     = "NodePort"
+        nodePort = 30300
       }
-    }
 
-    persistence = {
-      enabled = true
-      size    = "2Gi"
-    }
-  })]
+      datasources = {
+        "datasources.yaml" = {
+          apiVersion = 1
+          datasources = [
+            {
+              name      = "Prometheus"
+              type      = "prometheus"
+              url       = "http://prometheus-server.monitoring.svc.cluster.local"
+              access    = "proxy"
+              isDefault = true
+            }
+          ]
+        }
+      }
+
+      persistence = {
+        enabled = true
+        size    = "2Gi"
+      }
+    }),
+
+    file("${path.module}/grafana-values-hardening.yaml")
+  ]
 
   depends_on = [helm_release.prometheus]
 }

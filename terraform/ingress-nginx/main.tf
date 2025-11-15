@@ -76,7 +76,8 @@ resource "helm_release" "ingress_nginx" {
   chart      = "ingress-nginx"
   version    = "4.11.2"
 
-  values = [yamlencode({
+  values = [
+  yamlencode({
     controller = {
       publishService = { enabled = true }
       watchNamespace = ""
@@ -112,8 +113,10 @@ resource "helm_release" "ingress_nginx" {
         patch = { enabled = true }
       }
     }
-  })]
+  }),
 
+  file("${path.module}/ingress-nginx-hardening.yaml")
+]
   depends_on = [kubernetes_namespace.ingress_nginx]
 }
 
@@ -202,18 +205,6 @@ resource "kubernetes_manifest" "ingress_xwiki_integration" {
       ]
     }
   }
-}
-
-# ✅ Patch du déploiement ingress-nginx-controller via kubectl (local-exec)
-resource "null_resource" "patch_ingress_nginx_hostnetwork" {
-  provisioner "local-exec" {
-    command = <<EOT
-kubectl patch deployment ingress-nginx-controller -n ingress-nginx \
-  -p '{"spec":{"template":{"spec":{"hostNetwork":true,"dnsPolicy":"ClusterFirstWithHostNet"}}}}'
-EOT
-  }
-
-  depends_on = [helm_release.ingress_nginx]
 }
 
 # Sorties
