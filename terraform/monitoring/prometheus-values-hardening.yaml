@@ -7,6 +7,7 @@ server:
     runAsNonRoot: true
     runAsUser: 65534
     allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
     capabilities:
       drop: ["ALL"]
 
@@ -18,10 +19,26 @@ server:
       cpu: 1
       memory: 1Gi
 
+  # Sidecar de reload de config
+  configMapReload:
+    prometheus:
+      resources:
+        requests:
+          cpu: 20m
+          memory: 32Mi
+        limits:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+
 # -----------------------------------------------------------------------------
-# KUBE STATE METRICS (correct key: kube-state-metrics)
+# KUBE STATE METRICS (CORRECT KEY for prometheus chart)
 # -----------------------------------------------------------------------------
-kube-state-metrics:
+kubeStateMetrics:
   enabled: true
   resources:
     requests:
@@ -37,7 +54,7 @@ kube-state-metrics:
       drop: ["ALL"]
 
 # -----------------------------------------------------------------------------
-# NODE EXPORTER (required for NSA)
+# NODE EXPORTER (daemonset)
 # -----------------------------------------------------------------------------
 prometheus-node-exporter:
   resources:
@@ -54,29 +71,7 @@ prometheus-node-exporter:
       drop: ["ALL"]
 
 # -----------------------------------------------------------------------------
-# CONFIGMAP RELOAD (part of server)
-# -----------------------------------------------------------------------------
-serverFiles:
-  alerting_rules.yml: {}
-  recording_rules.yml: {}
-
-configmapReload:
-  prometheus:
-    resources:
-      requests:
-        cpu: 20m
-        memory: 32Mi
-      limits:
-        cpu: 100m
-        memory: 128Mi
-    securityContext:
-      allowPrivilegeEscalation: false
-      readOnlyRootFilesystem: true
-      capabilities:
-        drop: ["ALL"]
-
-# -----------------------------------------------------------------------------
-# PUSHGATEWAY (disabled but chart still creates object → SECURE IT TOO)
+# PUSHGATEWAY (disabled)
 # -----------------------------------------------------------------------------
 pushgateway:
   enabled: false

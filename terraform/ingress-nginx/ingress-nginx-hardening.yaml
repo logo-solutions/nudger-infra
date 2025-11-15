@@ -1,13 +1,16 @@
 controller:
-  # Ton usage : NodePort + SSL default cert
   allowSnippetAnnotations: false
 
-  # HARDENING SAFE
   containerSecurityContext:
+    runAsUser: 101
+    runAsNonRoot: true
     allowPrivilegeEscalation: false
     capabilities:
       drop:
-        - NET_RAW
+        - ALL
+      add:
+        - NET_BIND_SERVICE
+    readOnlyRootFilesystem: false   # ⚠️ doit rester false pour dumb-init
 
   podSecurityContext:
     seccompProfile:
@@ -15,11 +18,25 @@ controller:
 
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 150m
+      memory: 256Mi
     limits:
       cpu: 500m
       memory: 512Mi
 
-  # Si tu veux hostNetwork : ici, pas en patch externe
-
+  admissionWebhooks:
+    enabled: true
+    patch:
+      enabled: true
+      podSecurityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containerSecurityContext:
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+          add:
+            - NET_BIND_SERVICE
+        readOnlyRootFilesystem: false
