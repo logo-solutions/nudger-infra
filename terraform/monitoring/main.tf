@@ -64,6 +64,21 @@ resource "helm_release" "prometheus" {
           static_configs:
           - targets: ['metrics-server.kubernetes-dashboard.svc.cluster.local:443']
       EOT
+      prometheus-node-exporter = {
+        hostNetwork = false
+        hostPID     = false
+        hostIPC     = false
+
+        securityContext = {
+          allowPrivilegeEscalation = false
+          readOnlyRootFilesystem   = true
+          runAsNonRoot             = true
+          runAsUser                = 65534
+          capabilities = {
+            drop = ["ALL"]
+          }
+        }
+    }
     }),
 
     file("${path.module}/prometheus-values-hardening.yaml")

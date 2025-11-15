@@ -13,12 +13,12 @@ terraform {
 }
 
 provider "kubernetes" {
-  config_path = "~/.kube/config"
+  config_path = pathexpand("~/.kube/config")
 }
 
 provider "helm" {
   kubernetes {
-    config_path = "~/.kube/config"
+    config_path = pathexpand("~/.kube/config")
   }
 }
 
@@ -27,57 +27,97 @@ locals {
   metallb_chart   = "metallb"
   metallb_repo    = "https://metallb.github.io/metallb"
   metallb_version = "0.14.8"
+
+  hetzner_ip      = "91.98.16.184"
 }
 
+# -----------------------------------------------------------------------------
 # Namespace MetalLB
+# -----------------------------------------------------------------------------
 resource "kubernetes_namespace" "metallb" {
   metadata {
     name = local.namespace
   }
 }
 
-# Installation du chart MetalLB
+# -----------------------------------------------------------------------------
+# Helm: MetalLB + Hardening
+# -----------------------------------------------------------------------------
 resource "helm_release" "metallb" {
   name       = local.metallb_chart
   repository = local.metallb_repo
   chart      = local.metallb_chart
   namespace  = kubernetes_namespace.metallb.metadata[0].name
   version    = local.metallb_version
+
   cleanup_on_fail = true
+  create_namespace = false
 
   values = [
     yamlencode({
       controller = {
+        # SECURITÉ DU CONTROLLER
         securityContext = {
+          runAsNonRoot            = true
+          runAsUser               = 65534
           allowPrivilegeEscalation = false
+          readOnlyRootFilesystem   = true
           capabilities = {
             drop = ["ALL"]
           }
-          runAsNonRoot = true
-          runAsUser = 65534
+        }
+
+        resources = {
+          requests = {
+            cpu    = "100m"
+            memory = "128Mi"
+          }
+          limits = {
+            cpu    = "300m"
+            memory = "256Mi"
+          }
         }
       }
 
       speaker = {
-        # 🔥 OBLIGATOIRE POUR HETZNER CLOUD
+        # HETZNER : L2 sur interface publique
         l2 = {
           interfaces = ["eth0"]
         }
 
+        # Le speaker a besoin de NET_ADMIN / NET_RAW → on serre le reste
         securityContext = {
+          runAsNonRoot            = false
           allowPrivilegeEscalation = false
+          readOnlyRootFilesystem   = true
           capabilities = {
             drop = ["ALL"]
             add  = ["NET_ADMIN", "NET_RAW"]
           }
-          runAsNonRoot = false
+        }
+	frr = {
+	  enabled = false
+	}
+        resources = {
+          requests = {
+            cpu    = "100m"
+            memory = "128Mi"
+          }
+          limits = {
+            cpu    = "300m"
+            memory = "256Mi"
+          }
         }
       }
     })
   ]
+
+  depends_on = [kubernetes_namespace.metallb]
 }
 
-# Pool unique — ton IP Hetzner publique
+# -----------------------------------------------------------------------------
+# IPAddressPool : pool unique = IP publique Hetzner
+# -----------------------------------------------------------------------------
 resource "kubernetes_manifest" "ipaddresspool" {
   depends_on = [helm_release.metallb]
 
@@ -89,15 +129,20 @@ resource "kubernetes_manifest" "ipaddresspool" {
       namespace = local.namespace
     }
     spec = {
-      addresses = ["91.98.16.184-91.98.16.184"]
+      addresses = ["${local.hetzner_ip}-${local.hetzner_ip}"]
       autoAssign = true
     }
   }
 }
 
-# Advertisement L2
+# -----------------------------------------------------------------------------
+# L2Advertisement
+# -----------------------------------------------------------------------------
 resource "kubernetes_manifest" "l2advertisement" {
-  depends_on = [helm_release.metallb]
+  depends_on = [
+    helm_release.metallb,
+    kubernetes_manifest.ipaddresspool
+  ]
 
   manifest = {
     apiVersion = "metallb.io/v1beta1"
@@ -112,6 +157,20 @@ resource "kubernetes_manifest" "l2advertisement" {
   }
 }
 
+# -----------------------------------------------------------------------------
+# Outputs
+# -----------------------------------------------------------------------------
+output "metallb_namespace" {
+  value = kubernetes_namespace.metallb.metadata[0].name
+}
+
+output "metallb_pool" {
+  value = {
+    name      = kubernetes_manifest.ipaddresspool.manifest.metadata.name
+    addresses = kubernetes_manifest.ipaddresspool.manifest.spec.addresses
+  }
+}
+
 output "metallb_status" {
-  value = "MetalLB installed and IP pool 91.98.16.184 active"
+  value = "MetalLB installed, L2 mode on eth0, pool ${local.hetzner_ip} actif"
 }

@@ -61,7 +61,28 @@ resource "helm_release" "cert_manager" {
         readOnlyRootFilesystem   = true
         capabilities = { drop = ["ALL"] }
       }
+      # ---------------------------------------------------------
+      # HARDENING GLOBAL — RUN AS GROUP FIX
+      # ---------------------------------------------------------
+      podSecurityContext = {
+        runAsUser  = 65534
+        runAsGroup = 1000
+        fsGroup    = 1000
+        seccompProfile = {
+          type = "RuntimeDefault"
+        }
+      }
 
+      containerSecurityContext = {
+        runAsNonRoot             = true
+        runAsUser                = 65534
+        runAsGroup               = 1000
+        allowPrivilegeEscalation = false
+        readOnlyRootFilesystem   = true
+        capabilities = {
+          drop = ["ALL"]
+        }
+      }
       automountServiceAccountToken = true
 
       resources = {
@@ -79,6 +100,24 @@ resource "helm_release" "cert_manager" {
       # CAINJECTOR
       # ---------------------------------------------------------
       cainjector = {
+        podSecurityContext = {
+          runAsUser  = 65534
+          runAsGroup = 1000
+          fsGroup    = 1000
+          seccompProfile = {
+            type = "RuntimeDefault"
+          }
+        }
+        containerSecurityContext = {
+          runAsNonRoot             = true
+          runAsUser                = 65534
+          runAsGroup               = 1000
+          allowPrivilegeEscalation = false
+          readOnlyRootFilesystem   = true
+          capabilities = {
+            drop = ["ALL"]
+          }
+        }
         automountServiceAccountToken = true
         resources = {
           requests = {
@@ -96,6 +135,24 @@ resource "helm_release" "cert_manager" {
       # WEBHOOK
       # ---------------------------------------------------------
       webhook = {
+        podSecurityContext = {
+          runAsUser  = 65534
+          runAsGroup = 1000
+          fsGroup    = 1000
+          seccompProfile = {
+            type = "RuntimeDefault"
+          }
+        }
+        containerSecurityContext = {
+          runAsNonRoot             = true
+          runAsUser                = 65534
+          runAsGroup               = 1000
+          allowPrivilegeEscalation = false
+          readOnlyRootFilesystem   = true
+          capabilities = {
+            drop = ["ALL"]
+          }
+        }
         automountServiceAccountToken = true
         timeoutSeconds = 30
         resources = {

@@ -13,8 +13,14 @@ controller:
     readOnlyRootFilesystem: false   # ⚠️ doit rester false pour dumb-init
 
   podSecurityContext:
+    runAsUser: 101
+    runAsGroup: 1000
+    fsGroup: 1000
     seccompProfile:
       type: RuntimeDefault
+  containerSecurityContext:
+    runAsUser: 101
+    runAsGroup: 1000
 
   resources:
     requests:
