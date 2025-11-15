@@ -21,14 +21,18 @@ provider "helm" {
   }
 }
 
-# Namespace
+# -----------------------------------------------------------------------------
+# Namespace cert-manager
+# -----------------------------------------------------------------------------
 resource "kubernetes_namespace" "cert_manager" {
   metadata {
     name = "cert-manager"
   }
 }
 
-# Helm install + CRDs
+# -----------------------------------------------------------------------------
+# Helm Release cert-manager — version durcie, stable, sans fichier externe
+# -----------------------------------------------------------------------------
 resource "helm_release" "cert_manager" {
   name       = "cert-manager"
   namespace  = kubernetes_namespace.cert_manager.metadata[0].name
@@ -37,32 +41,29 @@ resource "helm_release" "cert_manager" {
   version    = "v1.15.1"
 
   create_namespace = false
-values = [
-  yamlencode({
-    installCRDs = true
-    prometheus  = { enabled = false }
 
-    # Controller resources (ATTENTION : à la racine)
-    resources = {
-      requests = {
-        cpu    = "100m"
-        memory = "128Mi"
+  values = [
+    yamlencode({
+      installCRDs = true
+      prometheus  = { enabled = false }
+
+      # ---------------------------------------------------------
+      # HARDENING GLOBAL
+      # ---------------------------------------------------------
+      podSecurityContext = {
+        seccompProfile = {
+          type = "RuntimeDefault"
+        }
       }
-      limits = {
-        cpu    = "500m"
-        memory = "256Mi"
+
+      containerSecurityContext = {
+        allowPrivilegeEscalation = false
+        readOnlyRootFilesystem   = true
+        capabilities = { drop = ["ALL"] }
       }
-    }
 
-    # Hardening appliqué à TOUTES les images
-    containerSecurityContext = {
-      allowPrivilegeEscalation = false
-      readOnlyRootFilesystem   = true
-      capabilities = { drop = ["ALL"] }
-    }
+      automountServiceAccountToken = true
 
-    # Cainjector resources
-    cainjector = {
       resources = {
         requests = {
           cpu    = "100m"
@@ -73,23 +74,52 @@ values = [
           memory = "256Mi"
         }
       }
-    }
 
-    webhook = {
-      timeoutSeconds = 30
-      resources = {
-        requests = {
-          cpu    = "50m"
-          memory = "64Mi"
-        }
-        limits = {
-          cpu    = "200m"
-          memory = "128Mi"
+      # ---------------------------------------------------------
+      # CAINJECTOR
+      # ---------------------------------------------------------
+      cainjector = {
+        automountServiceAccountToken = true
+        resources = {
+          requests = {
+            cpu    = "100m"
+            memory = "128Mi"
+          }
+          limits = {
+            cpu    = "500m"
+            memory = "256Mi"
+          }
         }
       }
-    }
 
-    automountServiceAccountToken = true
-  })
-]
+      # ---------------------------------------------------------
+      # WEBHOOK
+      # ---------------------------------------------------------
+      webhook = {
+        automountServiceAccountToken = true
+        timeoutSeconds = 30
+        resources = {
+          requests = {
+            cpu    = "50m"
+            memory = "64Mi"
+          }
+          limits = {
+            cpu    = "200m"
+            memory = "128Mi"
+          }
+        }
+      }
+    })
+  ]
+
+  depends_on = [
+    kubernetes_namespace.cert_manager
+  ]
+}
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+output "cert_manager_namespace" {
+  value = kubernetes_namespace.cert_manager.metadata[0].name
 }
