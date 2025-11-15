@@ -23,14 +23,3 @@ controller:
 
   # Si tu veux hostNetwork : ici, pas en patch externe
 
-admissionWebhooks:
-  patch:
-    enabled: true
-    podSecurityContext:
-      seccompProfile:
-        type: RuntimeDefault
-    containerSecurityContext:
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop:
-          - NET_RAW

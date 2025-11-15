@@ -5,7 +5,7 @@ server:
 
   securityContext:
     runAsNonRoot: true
-    runAsUser: 65534            # nobody
+    runAsUser: 65534
     allowPrivilegeEscalation: false
     capabilities:
       drop: ["ALL"]
@@ -18,13 +18,11 @@ server:
       cpu: 1
       memory: 1Gi
 
-# metrics exporter = kube-state-metrics
-# NE PAS désactiver automount ici
-kubeStateMetrics:
-  securityContext:
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop: ["ALL"]
+# -----------------------------------------------------------------------------
+# KUBE STATE METRICS (correct key: kube-state-metrics)
+# -----------------------------------------------------------------------------
+kube-state-metrics:
+  enabled: true
   resources:
     requests:
       cpu: 100m
@@ -32,8 +30,71 @@ kubeStateMetrics:
     limits:
       cpu: 500m
       memory: 256Mi
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
 
-# Pushgateway est disabled dans ton chart → rien à faire
+# -----------------------------------------------------------------------------
+# NODE EXPORTER (required for NSA)
+# -----------------------------------------------------------------------------
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
 
+# -----------------------------------------------------------------------------
+# CONFIGMAP RELOAD (part of server)
+# -----------------------------------------------------------------------------
+serverFiles:
+  alerting_rules.yml: {}
+  recording_rules.yml: {}
+
+configmapReload:
+  prometheus:
+    resources:
+      requests:
+        cpu: 20m
+        memory: 32Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop: ["ALL"]
+
+# -----------------------------------------------------------------------------
+# PUSHGATEWAY (disabled but chart still creates object → SECURE IT TOO)
+# -----------------------------------------------------------------------------
+pushgateway:
+  enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+
+# -----------------------------------------------------------------------------
+# ALERTMANAGER
+# -----------------------------------------------------------------------------
 alertmanager:
   enabled: false

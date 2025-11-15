@@ -1,4 +1,10 @@
-# HARDENING GRAFANA
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    cpu: 100m
+    memory: 128Mi
 
 securityContext:
   runAsNonRoot: true
@@ -8,19 +14,5 @@ securityContext:
   capabilities:
     drop: ["ALL"]
 
-resources:
-  requests:
-    cpu: 200m
-    memory: 256Mi
-  limits:
-    cpu: 1
-    memory: 512Mi
-
 serviceAccount:
   automountServiceAccountToken: false
-
-sidecar:
-  datasources:
-    enabled: false
-  dashboards:
-    enabled: false

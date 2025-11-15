@@ -58,7 +58,7 @@ resource "helm_release" "prometheus" {
       extraScrapeConfigs = <<-EOT
         - job_name: 'kube-state-metrics'
           static_configs:
-          - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
+          - targets: ['kube-state-metrics.monitoring.svc.cluster.local:8080']
 
         - job_name: 'metrics-server'
           static_configs:

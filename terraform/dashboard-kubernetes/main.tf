@@ -24,21 +24,25 @@ provider "helm" {
 locals {
   namespace     = "kubernetes-dashboard"
   domain        = "dashboard.nudger.logo-solutions.fr"
-  tls_secret    = "secret-tls-dashboard"   # ← Corrigé ici pour pointer sur ton certificat valide
+  tls_secret    = "secret-tls-dashboard"
   chart_name    = "kubernetes-dashboard"
   chart_repo    = "https://kubernetes.github.io/dashboard/"
   chart_version = "6.0.8"
   admin_account = "kubernetes-dashboard-admin"
 }
 
+# -----------------------------------------------------------------------------
 # Namespace
+# -----------------------------------------------------------------------------
 resource "kubernetes_namespace" "dashboard" {
   metadata {
     name = local.namespace
   }
 }
 
-# Helm release for Kubernetes Dashboard
+# -----------------------------------------------------------------------------
+# Helm release
+# -----------------------------------------------------------------------------
 resource "helm_release" "dashboard" {
   name            = local.chart_name
   repository      = local.chart_repo
@@ -47,51 +51,39 @@ resource "helm_release" "dashboard" {
   version         = local.chart_version
   cleanup_on_fail = true
 
-set = [
-  # Ingress configuration (exposé via NGINX)
-  { name = "ingress.enabled", value = "true" },
-  { name = "ingress.className", value = "nginx" },
-  { name = "ingress.hosts[0]", value = local.domain },
-  { name = "ingress.tls[0].hosts[0]", value = local.domain },
-  { name = "ingress.tls[0].secretName", value = local.tls_secret },
+  set = [
+    # Ingress
+    { name = "ingress.enabled", value = "true" },
+    { name = "ingress.className", value = "nginx" },
+    { name = "ingress.hosts[0]", value = local.domain },
+    { name = "ingress.tls[0].hosts[0]", value = local.domain },
+    { name = "ingress.tls[0].secretName", value = local.tls_secret },
 
-  # Service interne (ClusterIP, pas de LoadBalancer)
-  { name = "service.type", value = "ClusterIP" },
+    # Service
+    { name = "service.type", value = "ClusterIP" },
 
-  # Metrics
-  { name = "metricsScraper.enabled", value = "true" },
-  { name = "metrics-server.enabled", value = "true" },
-  { name = "metrics-server.args[0]", value = "--kubelet-insecure-tls=true" },
+    # Metrics
+    { name = "metricsScraper.enabled", value = "true" },
+    { name = "metrics-server.enabled", value = "true" },
+    { name = "metrics-server.args[0]", value = "--kubelet-insecure-tls=true" },
 
-  # RBAC et options d'accès
-  { name = "rbac.clusterReadOnlyRole", value = "true" },
-  { name = "extraArgs[0]", value = "--enable-skip-login" }
-]
-}
-# Patch du déploiement ingress-nginx-controller pour activer hostNetwork
-resource "kubernetes_manifest" "patch_ingress_nginx_hostnetwork" {
-  manifest = {
-    "apiVersion" = "apps/v1"
-    "kind"       = "Deployment"
-    "metadata" = {
-      "name"      = "ingress-nginx-controller"
-      "namespace" = "ingress-nginx"
-    }
-    "spec" = {
-      "template" = {
-        "spec" = {
-          "hostNetwork" = true
-          "dnsPolicy"   = "ClusterFirstWithHostNet"
-        }
-      }
-    }
-  }
+    # RBAC
+    { name = "rbac.clusterReadOnlyRole", value = "true" },
+    { name = "extraArgs[0]", value = "--enable-skip-login" }
+  ]
 
-  depends_on = [helm_release.ingress_nginx]
+  values = [
+    file("${path.module}/dashboard-metrics-scraper-hardening.yaml")
+  ]
+
+  depends_on = [
+    kubernetes_namespace.dashboard
+  ]
 }
 
-
-# Service Account admin
+# -----------------------------------------------------------------------------
+# Admin ServiceAccount + RBAC
+# -----------------------------------------------------------------------------
 resource "kubernetes_service_account" "admin" {
   metadata {
     name      = local.admin_account
@@ -99,7 +91,6 @@ resource "kubernetes_service_account" "admin" {
   }
 }
 
-# ClusterRoleBinding admin
 resource "kubernetes_cluster_role_binding" "admin_role_binding" {
   metadata {
     name = local.admin_account
@@ -116,7 +107,6 @@ resource "kubernetes_cluster_role_binding" "admin_role_binding" {
   }
 }
 
-# Secret token for ServiceAccount
 resource "kubernetes_secret" "admin_token" {
   metadata {
     name      = "${local.admin_account}-token"
@@ -128,7 +118,9 @@ resource "kubernetes_secret" "admin_token" {
   type = "kubernetes.io/service-account-token"
 }
 
+# -----------------------------------------------------------------------------
 # Outputs
+# -----------------------------------------------------------------------------
 output "dashboard_url" {
   value = "https://${local.domain}"
 }
@@ -142,6 +134,6 @@ output "namespace" {
 }
 
 output "admin_token" {
-  value      = kubernetes_secret.admin_token.data["token"]
-  sensitive  = true
+  value     = kubernetes_secret.admin_token.data["token"]
+  sensitive = true
 }

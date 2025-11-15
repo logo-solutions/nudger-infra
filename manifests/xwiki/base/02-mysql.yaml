@@ -26,6 +26,13 @@ spec:
             - "--skip-name-resolve"
             - "--max_connections=200"
             - "--explicit_defaults_for_timestamp"
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "2Gi"
           securityContext:
             runAsNonRoot: true
             runAsUser: 999           # utilisateur mysql dans l'image officielle
