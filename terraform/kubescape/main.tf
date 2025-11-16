@@ -59,7 +59,10 @@ resource "helm_release" "kubescape_operator" {
     name  = "capabilities.runtimeObservability"
     value = "enable"
   }
-
+  set {
+    name  = "nodeAgent.enabled"
+    value = "false"
+  }
   set {
     name  = "capabilities.prometheusExporter"
     value = "enable"

@@ -1,7 +1,60 @@
-# HARDENING PROMETHEUS
+alertmanager:
+  enabled: false
 
+extraScrapeConfigs: |
+  - job_name: 'kube-state-metrics'
+    static_configs:
+    - targets: ['kube-state-metrics.monitoring.svc.cluster.local:8080']
+
+  - job_name: 'metrics-server'
+    static_configs:
+    - targets: ['metrics-server.kubernetes-dashboard.svc.cluster.local:443']
+
+prometheus-node-exporter:
+  hostIPC: false
+  hostNetwork: false
+  hostPID: false
+
+# -------------------------------
+# Pushgateway (UN SEUL BLOC)
+# -------------------------------
+prometheus-pushgateway:
+  enabled: true
+
+  podSecurityContext:
+    runAsUser: 65534
+    runAsNonRoot: true
+    fsGroup: 65534
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# -------------------------------
+# Prometheus server
+# -------------------------------
 server:
   automountServiceAccountToken: false
+
+  global:
+    scrape_interval: "30s"
+
+  service:
+    type: ClusterIP
+    port: 9090
 
   securityContext:
     runAsNonRoot: true
@@ -19,44 +72,40 @@ server:
       cpu: 1
       memory: 1Gi
 
-  # Sidecar de reload de config
-  configMapReload:
-    prometheus:
-      resources:
-        requests:
-          cpu: 20m
-          memory: 32Mi
-        limits:
-          cpu: 100m
-          memory: 128Mi
-      securityContext:
-        allowPrivilegeEscalation: false
-        readOnlyRootFilesystem: true
-        capabilities:
-          drop: ["ALL"]
-
-# -----------------------------------------------------------------------------
-# KUBE STATE METRICS (CORRECT KEY for prometheus chart)
-# -----------------------------------------------------------------------------
-kubeStateMetrics:
+# -------------------------------
+# kube-state-metrics
+# -------------------------------
+kube-state-metrics:
   enabled: true
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+
   resources:
     requests:
       cpu: 100m
       memory: 128Mi
     limits:
-      cpu: 500m
+      cpu: 300m
       memory: 256Mi
-  securityContext:
-    allowPrivilegeEscalation: false
-    readOnlyRootFilesystem: true
-    capabilities:
-      drop: ["ALL"]
 
-# -----------------------------------------------------------------------------
-# NODE EXPORTER (daemonset)
-# -----------------------------------------------------------------------------
+# -------------------------------
+# node-exporter
+# -------------------------------
 prometheus-node-exporter:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+
   resources:
     requests:
       cpu: 50m
@@ -64,32 +113,24 @@ prometheus-node-exporter:
     limits:
       cpu: 200m
       memory: 256Mi
-  securityContext:
-    allowPrivilegeEscalation: false
-    readOnlyRootFilesystem: true
-    capabilities:
-      drop: ["ALL"]
 
-# -----------------------------------------------------------------------------
-# PUSHGATEWAY (disabled)
-# -----------------------------------------------------------------------------
-pushgateway:
-  enabled: false
-  resources:
-    requests:
-      cpu: 50m
-      memory: 64Mi
-    limits:
-      cpu: 200m
-      memory: 256Mi
-  securityContext:
-    allowPrivilegeEscalation: false
-    readOnlyRootFilesystem: true
-    capabilities:
-      drop: ["ALL"]
+# -------------------------------
+# configmapReload
+# -------------------------------
+configmapReload:
+  prometheus:
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 65534
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop: ["ALL"]
 
-# -----------------------------------------------------------------------------
-# ALERTMANAGER
-# -----------------------------------------------------------------------------
-alertmanager:
-  enabled: false
+    resources:
+      requests:
+        cpu: 20m
+        memory: 32Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi

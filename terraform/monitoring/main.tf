@@ -40,21 +40,45 @@ resource "helm_release" "prometheus" {
   chart      = "prometheus"
   version    = "25.8.0"
 
+  # 1) Overrides dynamiques spécifiques à ton cluster
   values = [
     yamlencode({
-      alertmanager = { enabled = false }
-      pushgateway  = { enabled = false }
-
-      server = {
-        global = {
-          scrape_interval = "30s"
-        }
-        service = {
-          type = "ClusterIP"
-          port = 9090
-        }
+      # Tu restes maître sur l’alertmanager
+      alertmanager = {
+        enabled = false
       }
+"prometheus-pushgateway" = {
+  enabled = true
 
+  podSecurityContext = {
+    runAsUser    = 65534
+    runAsNonRoot = true
+    fsGroup      = 65534
+  }
+
+  containerSecurityContext = {
+    runAsNonRoot             = true
+    runAsUser                = 65534
+    allowPrivilegeEscalation = false
+    readOnlyRootFilesystem   = true
+    capabilities = {
+      drop = ["ALL"]
+    }
+  }
+
+  resources = {
+    requests = {
+      cpu    = "50m"
+      memory = "64Mi"
+    }
+    limits = {
+      cpu    = "200m"
+      memory = "128Mi"
+    }
+  }
+}
+
+      # Jobs supplémentaires si tu veux garder ton kube-state-metrics + metrics-server statiques
       extraScrapeConfigs = <<-EOT
         - job_name: 'kube-state-metrics'
           static_configs:
@@ -64,23 +88,16 @@ resource "helm_release" "prometheus" {
           static_configs:
           - targets: ['metrics-server.kubernetes-dashboard.svc.cluster.local:443']
       EOT
-      prometheus-node-exporter = {
+
+      # Désactivation explicite du hostNetwork/hostPID/hostIPC pour le node-exporter
+      "prometheus-node-exporter" = {
         hostNetwork = false
         hostPID     = false
         hostIPC     = false
-
-        securityContext = {
-          allowPrivilegeEscalation = false
-          readOnlyRootFilesystem   = true
-          runAsNonRoot             = true
-          runAsUser                = 65534
-          capabilities = {
-            drop = ["ALL"]
-          }
-        }
-    }
+      }
     }),
 
+    # 2) Tout le HARDENING CPU/MEM + securityContext (dont pushgateway)
     file("${path.module}/prometheus-values-hardening.yaml")
   ]
 
@@ -101,6 +118,7 @@ resource "helm_release" "grafana" {
     yamlencode({
       adminUser     = "admin"
       adminPassword = "admin"
+
       service = {
         type     = "NodePort"
         nodePort = 30300
@@ -125,17 +143,48 @@ resource "helm_release" "grafana" {
         enabled = true
         size    = "2Gi"
       }
-    }),
 
-    file("${path.module}/grafana-values-hardening.yaml")
+      # HARDENING GRAFANA
+      securityContext = {
+        runAsNonRoot             = true
+        runAsUser                = 65534
+        allowPrivilegeEscalation = false
+        readOnlyRootFilesystem   = true
+        capabilities = {
+          drop = ["ALL"]
+        }
+      }
+
+      resources = {
+        requests = {
+          cpu    = "200m"
+          memory = "256Mi"
+        }
+        limits = {
+          cpu    = "1"
+          memory = "512Mi"
+        }
+      }
+
+      serviceAccount = {
+        automountServiceAccountToken = false
+      }
+
+      sidecar = {
+        datasources = { enabled = false }
+        dashboards  = { enabled = false }
+      }
+    })
   ]
-
-  depends_on = [helm_release.prometheus]
 }
 
 # -----------------------------------------------------------------------------
 # Outputs
 # -----------------------------------------------------------------------------
+output "namespace" {
+  value = kubernetes_namespace.monitoring.metadata[0].name
+}
+
 output "grafana_access" {
   value = {
     url      = "http://<NODE_IP>:30300"
