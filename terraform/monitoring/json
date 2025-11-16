@@ -1,0 +1,101 @@
+
+──────────────────────────────────────────────────
+
+Framework scanned: NSA
+
+╭─────────────────┬────╮
+│        Controls │ 25 │
+│          Passed │ 14 │
+│          Failed │ 6  │
+│ Action Required │ 5  │
+╰─────────────────┴────╯
+
+Failed resources by severity:
+
+╭──────────┬────╮
+│ Critical │ 0  │
+│     High │ 0  │
+│   Medium │ 15 │
+│      Low │ 4  │
+╰──────────┴────╯
+
+Run with '--verbose'/'-v' to see control failures for each resource.
+
+╭──────────────────────────────────────────────────────────────────╮
+│ Controls                                                         │
+├──────────────────────────────────────────────────────────────────┤
+│                   Severity           : Critical                  │
+│ Control Name       : Disable anonymous access to Kubelet service │
+│                      Failed Resources   : 0                      │
+│                      All Resources      : 0                      │
+│              % Compliance-Score : Action Required **             │
+├──────────────────────────────────────────────────────────────────┤
+│                   Severity           : Critical                  │
+│  Control Name       : Enforce Kubelet client TLS authentication  │
+│                      Failed Resources   : 0                      │
+│                      All Resources      : 0                      │
+│              % Compliance-Score : Action Required **             │
+├──────────────────────────────────────────────────────────────────┤
+│                    Severity           : Medium                   │
+│             Control Name       : Non-root containers             │
+│                      Failed Resources   : 1                      │
+│                      All Resources      : 5                      │
+│                     % Compliance-Score : 80%                     │
+├──────────────────────────────────────────────────────────────────┤
+│                    Severity           : Medium                   │
+│          Control Name       : Allow privilege escalation         │
+│                      Failed Resources   : 2                      │
+│                      All Resources      : 5                      │
+│                     % Compliance-Score : 60%                     │
+├──────────────────────────────────────────────────────────────────┤
+│                    Severity           : Medium                   │
+│          Control Name       : Ingress and Egress blocked         │
+│                      Failed Resources   : 5                      │
+│                      All Resources      : 5                      │
+│                      % Compliance-Score : 0%                     │
+├──────────────────────────────────────────────────────────────────┤
+│                    Severity           : Medium                   │
+│     Control Name       : Automatic mapping of service account    │
+│                      Failed Resources   : 4                      │
+│                      All Resources      : 11                     │
+│                     % Compliance-Score : 64%                     │
+├──────────────────────────────────────────────────────────────────┤
+│                    Severity           : Medium                   │
+│               Control Name       : Linux hardening               │
+│                      Failed Resources   : 3                      │
+│                      All Resources      : 5                      │
+│                     % Compliance-Score : 40%                     │
+├──────────────────────────────────────────────────────────────────┤
+│                    Severity           : Medium                   │
+│        Control Name       : Secret/etcd encryption enabled       │
+│                      Failed Resources   : 0                      │
+│                      All Resources      : 0                      │
+│              % Compliance-Score : Action Required *              │
+├──────────────────────────────────────────────────────────────────┤
+│                    Severity           : Medium                   │
+│              Control Name       : Audit logs enabled             │
+│                      Failed Resources   : 0                      │
+│                      All Resources      : 0                      │
+│              % Compliance-Score : Action Required *              │
+├──────────────────────────────────────────────────────────────────┤
+│                     Severity           : Low                     │
+│        Control Name       : Immutable container filesystem       │
+│                      Failed Resources   : 4                      │
+│                      All Resources      : 5                      │
+│                     % Compliance-Score : 20%                     │
+├──────────────────────────────────────────────────────────────────┤
+│                     Severity           : Low                     │
+│                 Control Name       : PSP enabled                 │
+│                      Failed Resources   : 0                      │
+│                      All Resources      : 0                      │
+│              % Compliance-Score : Action Required *              │
+├──────────────────────────────────────────────────────────────────┤
+│ Resource Summary                                                 │
+│                                                                  │
+│ Failed Resources : 9                                             │
+│ All Resources    : 18                                            │
+│ % Compliance-Score    : 66.55%                                   │
+╰──────────────────────────────────────────────────────────────────╯
+🚨 * failed to get cloud provider, cluster: kubernetes-admin-kubernetes
+🚨 ** This control is scanned exclusively by the Kubescape operator, not the Kubescape CLI. Install the Kubescape operator:
+     https://kubescape.io/docs/install-operator/.

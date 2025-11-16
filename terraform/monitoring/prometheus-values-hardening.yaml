@@ -1,34 +1,16 @@
-alertmanager:
-  enabled: false
-
-extraScrapeConfigs: |
-  - job_name: 'kube-state-metrics'
-    static_configs:
-    - targets: ['kube-state-metrics.monitoring.svc.cluster.local:8080']
-
-  - job_name: 'metrics-server'
-    static_configs:
-    - targets: ['metrics-server.kubernetes-dashboard.svc.cluster.local:443']
-
-prometheus-node-exporter:
-  hostIPC: false
-  hostNetwork: false
-  hostPID: false
-
-# -------------------------------
-# Pushgateway (UN SEUL BLOC)
-# -------------------------------
-prometheus-pushgateway:
-  enabled: true
-
-  podSecurityContext:
-    runAsUser: 65534
-    runAsNonRoot: true
-    fsGroup: 65534
-
+server:
   securityContext:
     runAsNonRoot: true
     runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+
+  containerSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: true
     capabilities:
@@ -37,100 +19,8 @@ prometheus-pushgateway:
 
   resources:
     requests:
-      cpu: 50m
-      memory: 64Mi
+      cpu: 150m
+      memory: 256Mi
     limits:
-      cpu: 200m
-      memory: 128Mi
-
-# -------------------------------
-# Prometheus server
-# -------------------------------
-server:
-  automountServiceAccountToken: false
-
-  global:
-    scrape_interval: "30s"
-
-  service:
-    type: ClusterIP
-    port: 9090
-
-  securityContext:
-    runAsNonRoot: true
-    runAsUser: 65534
-    allowPrivilegeEscalation: false
-    readOnlyRootFilesystem: true
-    capabilities:
-      drop: ["ALL"]
-
-  resources:
-    requests:
-      cpu: 300m
+      cpu: 500m
       memory: 512Mi
-    limits:
-      cpu: 1
-      memory: 1Gi
-
-# -------------------------------
-# kube-state-metrics
-# -------------------------------
-kube-state-metrics:
-  enabled: true
-
-  securityContext:
-    runAsNonRoot: true
-    runAsUser: 65534
-    allowPrivilegeEscalation: false
-    readOnlyRootFilesystem: true
-    capabilities:
-      drop: ["ALL"]
-
-  resources:
-    requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 300m
-      memory: 256Mi
-
-# -------------------------------
-# node-exporter
-# -------------------------------
-prometheus-node-exporter:
-  securityContext:
-    runAsNonRoot: true
-    runAsUser: 65534
-    allowPrivilegeEscalation: false
-    readOnlyRootFilesystem: true
-    capabilities:
-      drop: ["ALL"]
-
-  resources:
-    requests:
-      cpu: 50m
-      memory: 64Mi
-    limits:
-      cpu: 200m
-      memory: 256Mi
-
-# -------------------------------
-# configmapReload
-# -------------------------------
-configmapReload:
-  prometheus:
-    securityContext:
-      runAsNonRoot: true
-      runAsUser: 65534
-      allowPrivilegeEscalation: false
-      readOnlyRootFilesystem: true
-      capabilities:
-        drop: ["ALL"]
-
-    resources:
-      requests:
-        cpu: 20m
-        memory: 32Mi
-      limits:
-        cpu: 100m
-        memory: 128Mi

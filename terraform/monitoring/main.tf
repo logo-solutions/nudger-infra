@@ -22,7 +22,7 @@ provider "helm" {
 }
 
 # -----------------------------------------------------------------------------
-# Namespace
+# Namespace monitoring
 # -----------------------------------------------------------------------------
 resource "kubernetes_namespace" "monitoring" {
   metadata {
@@ -31,7 +31,7 @@ resource "kubernetes_namespace" "monitoring" {
 }
 
 # -----------------------------------------------------------------------------
-# Prometheus
+# Prometheus - Hardening Ning Full IAC
 # -----------------------------------------------------------------------------
 resource "helm_release" "prometheus" {
   name       = "prometheus"
@@ -40,45 +40,10 @@ resource "helm_release" "prometheus" {
   chart      = "prometheus"
   version    = "25.8.0"
 
-  # 1) Overrides dynamiques spécifiques à ton cluster
   values = [
     yamlencode({
-      # Tu restes maître sur l’alertmanager
-      alertmanager = {
-        enabled = false
-      }
-"prometheus-pushgateway" = {
-  enabled = true
+      alertmanager = { enabled = false }
 
-  podSecurityContext = {
-    runAsUser    = 65534
-    runAsNonRoot = true
-    fsGroup      = 65534
-  }
-
-  containerSecurityContext = {
-    runAsNonRoot             = true
-    runAsUser                = 65534
-    allowPrivilegeEscalation = false
-    readOnlyRootFilesystem   = true
-    capabilities = {
-      drop = ["ALL"]
-    }
-  }
-
-  resources = {
-    requests = {
-      cpu    = "50m"
-      memory = "64Mi"
-    }
-    limits = {
-      cpu    = "200m"
-      memory = "128Mi"
-    }
-  }
-}
-
-      # Jobs supplémentaires si tu veux garder ton kube-state-metrics + metrics-server statiques
       extraScrapeConfigs = <<-EOT
         - job_name: 'kube-state-metrics'
           static_configs:
@@ -88,16 +53,9 @@ resource "helm_release" "prometheus" {
           static_configs:
           - targets: ['metrics-server.kubernetes-dashboard.svc.cluster.local:443']
       EOT
-
-      # Désactivation explicite du hostNetwork/hostPID/hostIPC pour le node-exporter
-      "prometheus-node-exporter" = {
-        hostNetwork = false
-        hostPID     = false
-        hostIPC     = false
-      }
     }),
 
-    # 2) Tout le HARDENING CPU/MEM + securityContext (dont pushgateway)
+    # Ning Hardening complet (server + exporters + pushgateway)
     file("${path.module}/prometheus-values-hardening.yaml")
   ]
 
@@ -105,7 +63,7 @@ resource "helm_release" "prometheus" {
 }
 
 # -----------------------------------------------------------------------------
-# Grafana
+# Grafana (chart grafana/grafana) Ning-hardened
 # -----------------------------------------------------------------------------
 resource "helm_release" "grafana" {
   name       = "grafana"
@@ -144,7 +102,7 @@ resource "helm_release" "grafana" {
         size    = "2Gi"
       }
 
-      # HARDENING GRAFANA
+      # Ning Hardening Grafana
       securityContext = {
         runAsNonRoot             = true
         runAsUser                = 65534
@@ -174,8 +132,13 @@ resource "helm_release" "grafana" {
         datasources = { enabled = false }
         dashboards  = { enabled = false }
       }
-    })
+    }),
+
+    # ← Tu pourrais aussi mettre un grafana-hardening.yaml ici
+    # file("${path.module}/grafana-values-hardening.yaml")
   ]
+
+  depends_on = [helm_release.prometheus]
 }
 
 # -----------------------------------------------------------------------------
@@ -185,16 +148,16 @@ output "namespace" {
   value = kubernetes_namespace.monitoring.metadata[0].name
 }
 
+output "prometheus_access" {
+  value = {
+    url = "http://prometheus-server.${kubernetes_namespace.monitoring.metadata[0].name}.svc.cluster.local:9090"
+  }
+}
+
 output "grafana_access" {
   value = {
     url      = "http://<NODE_IP>:30300"
     username = "admin"
     password = "admin"
-  }
-}
-
-output "prometheus_access" {
-  value = {
-    url = "http://prometheus-server.monitoring.svc.cluster.local:9090"
   }
 }
