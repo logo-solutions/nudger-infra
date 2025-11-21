@@ -1,0 +1,35 @@
+adminUser: admin
+adminPassword: admin
+
+service:
+  type: NodePort
+  nodePort: 30300
+
+persistence:
+  enabled: true
+  size: 2Gi
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi
+
+serviceAccount:
+  automountServiceAccountToken: false
+
+sidecar:
+  dashboards:
+    enabled: false
+  datasources:
+    enabled: false

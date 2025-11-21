@@ -1,0 +1,65 @@
+$ kubescape scan framework nsa
+ ✅  Initialized scanner
+ ✅  Loaded policies
+ ✅  Loaded exceptions
+ ✅  Loaded account configurations
+ ✅  Accessed Kubernetes objects
+Control: C-0005 100% |████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| (25/25, 25 it/s)
+ ✅  Done scanning. Cluster: kubernetes-admin-kubernetes
+ ✅  Done aggregating results
+
+
+──────────────────────────────────────────────────
+
+Framework scanned: NSA
+
+╭─────────────────┬────╮
+│        Controls │ 25 │
+│          Passed │ 4  │
+│          Failed │ 19 │
+│ Action Required │ 2  │
+╰─────────────────┴────╯
+
+Failed resources by severity:
+
+╭──────────┬─────╮
+│ Critical │ 0   │
+│     High │ 80  │
+│   Medium │ 179 │
+│      Low │ 25  │
+╰──────────┴─────╯
+
+Run with '--verbose'/'-v' to see control failures for each resource.
+
+╭──────────┬────────────────────────────────────────────────────┬──────────────────┬───────────────┬───────────────────╮
+│ Severity │ Control name                                       │ Failed resources │ All Resources │ Compliance score  │
+├──────────┼────────────────────────────────────────────────────┼──────────────────┼───────────────┼───────────────────┤
+│ Critical │ Disable anonymous access to Kubelet service        │         0        │       0       │ Action Required * │
+│ Critical │ Enforce Kubelet client TLS authentication          │         0        │       0       │ Action Required * │
+│   High   │ Applications credentials in configuration files    │        10        │       93      │        89%        │
+│   High   │ Host PID/IPC privileges                            │         1        │       46      │        98%        │
+│   High   │ HostNetwork access                                 │         4        │       46      │        91%        │
+│   High   │ Insecure capabilities                              │         2        │       46      │        96%        │
+│   High   │ Privileged container                               │         1        │       46      │        98%        │
+│   High   │ Ensure CPU limits are set                          │        31        │       46      │        33%        │
+│   High   │ Ensure memory limits are set                       │        31        │       46      │        33%        │
+│  Medium  │ Prevent containers from allowing command execution │         4        │      119      │        97%        │
+│  Medium  │ Non-root containers                                │        27        │       46      │        41%        │
+│  Medium  │ Allow privilege escalation                         │        21        │       46      │        54%        │
+│  Medium  │ Ingress and Egress blocked                         │        33        │       46      │        28%        │
+│  Medium  │ Automatic mapping of service account               │        57        │      132      │        57%        │
+│  Medium  │ Administrative Roles                               │         3        │      119      │        97%        │
+│  Medium  │ Cluster internal networking                        │         9        │       14      │        36%        │
+│  Medium  │ Linux hardening                                    │        23        │       46      │        50%        │
+│  Medium  │ Secret/etcd encryption enabled                     │         1        │       1       │         0%        │
+│  Medium  │ Audit logs enabled                                 │         1        │       1       │         0%        │
+│    Low   │ Immutable container filesystem                     │        24        │       46      │        48%        │
+│    Low   │ PSP enabled                                        │         1        │       1       │         0%        │
+├──────────┼────────────────────────────────────────────────────┼──────────────────┼───────────────┼───────────────────┤
+│          │                  Resource Summary                  │        91        │      312      │       57.82%      │
+╰──────────┴────────────────────────────────────────────────────┴──────────────────┴───────────────┴───────────────────╯
+
+🚨 * This control is scanned exclusively by the Kubescape operator, not the Kubescape CLI. Install the Kubescape operator:
+     https://kubescape.io/docs/install-operator/.
+root@bastion ~/nudger-infra [feat/20251106-dashboard]
+$

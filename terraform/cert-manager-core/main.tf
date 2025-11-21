@@ -21,14 +21,18 @@ provider "helm" {
   }
 }
 
-# Namespace
+# -----------------------------------------------------------------------------
+# Namespace cert-manager
+# -----------------------------------------------------------------------------
 resource "kubernetes_namespace" "cert_manager" {
   metadata {
     name = "cert-manager"
   }
 }
 
-# Helm install + CRDs
+# -----------------------------------------------------------------------------
+# Helm Release cert-manager — version durcie, stable, sans fichier externe
+# -----------------------------------------------------------------------------
 resource "helm_release" "cert_manager" {
   name       = "cert-manager"
   namespace  = kubernetes_namespace.cert_manager.metadata[0].name
@@ -38,9 +42,141 @@ resource "helm_release" "cert_manager" {
 
   create_namespace = false
 
-  values = [yamlencode({
-    installCRDs = true
-    prometheus  = { enabled = false }
-    webhook     = { timeoutSeconds = 30 }
-  })]
+  values = [
+    yamlencode({
+      installCRDs = true
+      prometheus  = { enabled = false }
+
+      # ---------------------------------------------------------
+      # HARDENING GLOBAL
+      # ---------------------------------------------------------
+      podSecurityContext = {
+        seccompProfile = {
+          type = "RuntimeDefault"
+        }
+      }
+
+      containerSecurityContext = {
+        allowPrivilegeEscalation = false
+        readOnlyRootFilesystem   = true
+        capabilities = { drop = ["ALL"] }
+      }
+      # ---------------------------------------------------------
+      # HARDENING GLOBAL — RUN AS GROUP FIX
+      # ---------------------------------------------------------
+      podSecurityContext = {
+        runAsUser  = 65534
+        runAsGroup = 1000
+        fsGroup    = 1000
+        seccompProfile = {
+          type = "RuntimeDefault"
+        }
+      }
+
+      containerSecurityContext = {
+        runAsNonRoot             = true
+        runAsUser                = 65534
+        runAsGroup               = 1000
+        allowPrivilegeEscalation = false
+        readOnlyRootFilesystem   = true
+        capabilities = {
+          drop = ["ALL"]
+        }
+      }
+      automountServiceAccountToken = true
+
+      resources = {
+        requests = {
+          cpu    = "100m"
+          memory = "128Mi"
+        }
+        limits = {
+          cpu    = "500m"
+          memory = "256Mi"
+        }
+      }
+
+      # ---------------------------------------------------------
+      # CAINJECTOR
+      # ---------------------------------------------------------
+      cainjector = {
+        podSecurityContext = {
+          runAsUser  = 65534
+          runAsGroup = 1000
+          fsGroup    = 1000
+          seccompProfile = {
+            type = "RuntimeDefault"
+          }
+        }
+        containerSecurityContext = {
+          runAsNonRoot             = true
+          runAsUser                = 65534
+          runAsGroup               = 1000
+          allowPrivilegeEscalation = false
+          readOnlyRootFilesystem   = true
+          capabilities = {
+            drop = ["ALL"]
+          }
+        }
+        automountServiceAccountToken = true
+        resources = {
+          requests = {
+            cpu    = "100m"
+            memory = "128Mi"
+          }
+          limits = {
+            cpu    = "500m"
+            memory = "256Mi"
+          }
+        }
+      }
+
+      # ---------------------------------------------------------
+      # WEBHOOK
+      # ---------------------------------------------------------
+      webhook = {
+        podSecurityContext = {
+          runAsUser  = 65534
+          runAsGroup = 1000
+          fsGroup    = 1000
+          seccompProfile = {
+            type = "RuntimeDefault"
+          }
+        }
+        containerSecurityContext = {
+          runAsNonRoot             = true
+          runAsUser                = 65534
+          runAsGroup               = 1000
+          allowPrivilegeEscalation = false
+          readOnlyRootFilesystem   = true
+          capabilities = {
+            drop = ["ALL"]
+          }
+        }
+        automountServiceAccountToken = true
+        timeoutSeconds = 30
+        resources = {
+          requests = {
+            cpu    = "50m"
+            memory = "64Mi"
+          }
+          limits = {
+            cpu    = "200m"
+            memory = "128Mi"
+          }
+        }
+      }
+    })
+  ]
+
+  depends_on = [
+    kubernetes_namespace.cert_manager
+  ]
+}
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+output "cert_manager_namespace" {
+  value = kubernetes_namespace.cert_manager.metadata[0].name
 }

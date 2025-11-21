@@ -1,0 +1,48 @@
+controller:
+  allowSnippetAnnotations: false
+
+  containerSecurityContext:
+    runAsUser: 101
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+      add:
+        - NET_BIND_SERVICE
+    readOnlyRootFilesystem: false   # ⚠️ doit rester false pour dumb-init
+
+  podSecurityContext:
+    runAsUser: 101
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    runAsUser: 101
+    runAsGroup: 1000
+
+  resources:
+    requests:
+      cpu: 150m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  admissionWebhooks:
+    enabled: true
+    patch:
+      enabled: true
+      podSecurityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containerSecurityContext:
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+          add:
+            - NET_BIND_SERVICE
+        readOnlyRootFilesystem: false

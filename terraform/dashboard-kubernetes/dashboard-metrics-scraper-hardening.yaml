@@ -1,0 +1,72 @@
+# HARDENING KUBERNETES DASHBOARD + METRICS
+
+# -----------------------------------------------------------------------------
+# Deployment principal : kubernetes-dashboard
+# -----------------------------------------------------------------------------
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 300m
+    memory: 256Mi
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+serviceAccount:
+  automountServiceAccountToken: false
+
+# -----------------------------------------------------------------------------
+# Metrics scraper (Job/Deployment kubernetes-dashboard-metrics-scraper)
+# -----------------------------------------------------------------------------
+metricsScraper:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 1000
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+
+# -----------------------------------------------------------------------------
+# Metrics-server (Deployment kubernetes-dashboard-metrics-server)
+# -----------------------------------------------------------------------------
+metrics-server:
+  # tu as déjà les args dans Terraform (set[]), ici on fait le hardening
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+
+  containerSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
